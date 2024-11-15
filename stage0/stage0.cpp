@@ -38,7 +38,7 @@ void parser() {
     // the next token.
     prog()
     // parser implements the grammar rules, calling first rule */
-  
+
 }
 void createListingTrailer() {
  /* print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED" */
