@@ -1,6 +1,8 @@
 // Erik Zuniga && Roberto Lopez
 // CS4301 - Compilers Project Stage-0
 
+//hola cuh
+
 #include <stage0.h>
 #include <string>
 using namespace std;
@@ -36,7 +38,7 @@ void parser() {
     // the next token.
     prog()
     // parser implements the grammar rules, calling first rule */
-  
+
 }
 void createListingTrailer() {
  /* print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED" */
