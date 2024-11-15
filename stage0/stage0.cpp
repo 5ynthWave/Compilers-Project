@@ -12,12 +12,16 @@ Compiler(char **argv) {
  /* open sourceFile using argv[1]
     open listingFile using argv[2]
     open objectFile using argv[3] */
-  
+  sourceFile.open(argv[1]);
+  listingFile.open(argv[2]);
+  objectFile.open(argv[3]);
 }
 // Destructor
 ~Compiler() {
  /* close all open files */
-  
+  sourceFile.close();
+  listingFile.close();
+  objectFile.close();
 }
 
 void createListingHeader() {
@@ -182,27 +186,28 @@ string ids() {
 // Helper functions for the Pascallite lexicon:
 // Determines if s is a keyword
 bool isKeyword(string s) const {
-
+  // 'program' | 'begin' | 'end' | 'var' | 'const' | 'integer' | 
+  // 'boolean' | 'true' | 'false' | 'not'
 }
 // Determines if c is a special symbol
 bool isSpecialSymbol(char c) const {
-
+  // '=' | ':' | ',' | ';' | '.' | '+' | '-'
 }
 // Determines if s is a non_key_id
 bool isNonKeyId(string s) const {
-
+  // ALPHA ALPHANUMS
 }
 // Determines if s is an integer
 bool isInteger(string s) const {
-
+  // NUM NUMS
 }
 // Determines if s is a boolean
 bool isBoolean(string s) const {
-
+  // 'true' | 'false
 }
 // Determines if s is a literal
 bool isLiteral(string s) const {
-
+  // INTEGER | 'false', true' | not | '+' | '-'
 }
 
 // Action routines:
