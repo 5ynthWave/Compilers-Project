@@ -64,7 +64,17 @@ void prog() {
     beginEndStmt()
     if (token != END_OF_FILE)
       processError(no text may follow "end”) */
-  
+
+  if(token != "program")
+    error("Keyword \'program\' expected.");
+  progStmt();
+  if(token == "const") consts();
+  if(token == "var") vars();
+  if(token != "begin")
+    error("Keyword \'begin\' expected.");
+  beginEndStmt();
+  if(token[0] != END_OF_FILE)
+    error("No text may follow \'end\'.");
 }
 // Stage 0, Production 2 -> Token should be "program"
 void progStmt() {
@@ -80,6 +90,12 @@ void progStmt() {
     code("program", x)
     insert(x,PROG_NAME,CONSTANT,x,NO,0) */
   
+  if(token != "program")
+    error("Keyword \'program\' expected.");
+  string x = nextToken();
+  if(!isNonKeyId(token))
+    error("Program name expected.");
+
 }
 // Stage 0, Production 3 -> Token should be "const"
 void consts() {
@@ -186,33 +202,54 @@ string ids() {
 // Helper functions for the Pascallite lexicon:
 // Determines if s is a keyword
 bool isKeyword(string s) const {
-  // 'program' | 'begin' | 'end' | 'var' | 'const' | 'integer' | 
-  // 'boolean' | 'true' | 'false' | 'not'
+  return (s=='program' || s=='begin' || s=='end' || s=='var' || s=='const'
+    || s=='integer' || s=='boolean' || s=='true' || s=='false' || s=='not');
 }
 // Determines if c is a special symbol
 bool isSpecialSymbol(char c) const {
-  // '=' | ':' | ',' | ';' | '.' | '+' | '-'
+  return (c=='=' || c==':' || c==',' || c==';' || c=='.' || c=='+' || c=='-');
 }
-// Determines if s is a non_key_id
+// Determines if s is a non_key_id -> ALPHA | ALPHANUMS
 bool isNonKeyId(string s) const {
-  // ALPHA ALPHANUMS
+  // Ensure that the token is not in the symbol table,
+  // if .find() returns true then .end() was never reached
+  if(symbolTable.find(s) != symbolTable.end())
+    error("Multiply named definition.");
+  // Ensure token does not start with a capitalized letter
+  if(isupper(token[0]))
+    error("Tokens must begin with a lowercase character.");
+  // Iterate through token to ensure the rest of the characters are valid
+  // ALPHANUMS | '_'
+  for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
+    if(!isalnum(*iter) && *iter != '_')
+      error('Invalid character inside token.');
+  }
+  // Ensure that the token is not a reserved keyword
+  if(isKeyword(s))
+    error("Reserved keyword \'" + s + "\' cannot be redefined.");
+  // If the token passes all tests, then it is a NON_KEY_ID
+  return true;
 }
-// Determines if s is an integer
+// Determines if s is an integer -> NUM | NUMS
 bool isInteger(string s) const {
-  // NUM NUMS
+  // Iterate through the token and check if each character is an integer
+  for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
+    if(!isdigit(*iter)) return false;
+  }
+  return true;
 }
 // Determines if s is a boolean
 bool isBoolean(string s) const {
-  // 'true' | 'false
+  return (s=='true' || s=='false');
 }
 // Determines if s is a literal
 bool isLiteral(string s) const {
-  // INTEGER | 'false', true' | not | '+' | '-'
+  return (isInteger(s) || isBoolean(s) || s=='not' || s=='+' || s=='-');
 }
 
 // Action routines:
 // Create symbol table entry for each identigier in list of external names
-// multiply inserted names (severeal at once) are illegal
+// multiply inserted names (several at once) are illegal
 void insert(string externalName, storeTypes inType, modes inMode,
             string inValue, allocation inAlloc, int inUnits) {
  /* string name
