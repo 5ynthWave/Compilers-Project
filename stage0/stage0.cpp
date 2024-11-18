@@ -66,15 +66,15 @@ void prog() {
       processError(no text may follow "end”) */
 
   if(token != "program")
-    error("Keyword \'program\' expected.");
+    processError("Keyword \'program\' expected.");
   progStmt();
   if(token == "const") consts();
   if(token == "var") vars();
   if(token != "begin")
-    error("Keyword \'begin\' expected.");
+    processError("Keyword \'begin\' expected.");
   beginEndStmt();
   if(token[0] != END_OF_FILE)
-    error("No text may follow \'end\'.");
+    processError("No text may follow \'end\'.");
 }
 // Stage 0, Production 2 -> Token should be "program"
 void progStmt() {
@@ -91,11 +91,15 @@ void progStmt() {
     insert(x,PROG_NAME,CONSTANT,x,NO,0) */
   
   if(token != "program")
-    error("Keyword \'program\' expected.");
+    processError("Keyword \'program\' expected.");
   string x = nextToken();
   if(!isNonKeyId(token))
-    error("Program name expected.");
-
+    processError("Program name expected.");
+  if(nextToken() != ';')
+    processError("Semicolon \';\' expected.");
+  nextToken();
+  code("program", x);
+  insert(x, PROG_NAME, CONSTANT, x, NO, 0);
 }
 // Stage 0, Production 3 -> Token should be "const"
 void consts() {
@@ -104,7 +108,12 @@ void consts() {
     if (nextToken() is not a NON_KEY_ID)
       processError(non-keyword identifier must follow "const")
     constStmts() */
-  
+
+  if(token != "const")
+    processError("Keyword \'const\' expected.");
+  if(!isNonKeyId(nextToken()))
+    processError("Non-keyword identifier must follow \'const\'");
+  constStmts();
 }
 // Stage 0, Production 4 -> Token should be "var"
 void vars() {
@@ -114,6 +123,11 @@ void vars() {
       processError(non-keyword identifier must follow "var")
     varStmts() */
   
+  if(token != "var")
+    procesError("Keyword \'var\' expected.");
+  if(!isNonKeyId(nextToken()))
+    procesError("Non-keyword identifier must follow \'var\'.");
+  varStmts();
 }
 // Stage 0, Production 5 -> Token should be "begin"
 void beginEndStmt() {
@@ -126,6 +140,14 @@ void beginEndStmt() {
     nextToken()
     code("end", ".") */
   
+  if(token != "begin")
+    procesError("Keyword \'begin\' expected.");
+  if(nextToken() != "end")
+    processError("Keyword \'end\' expected.");
+  if(nextToken() != ".")
+    processError("Period \'.\' expected.");
+  nextToken();
+  code("end", ".");
 }
 // Stage 0, Production 6 -> Token should be NON_KEY_ID
 void constStmts() {
@@ -161,6 +183,14 @@ void constStmts() {
       processError(non-keyword identifier, "begin", or "var" expected)
     if (x is a NON_KEY_ID)
       constStmts() */
+  
+  string x, y = "";
+  if(!isNonKeyId(token))
+    processError("Non-keyword identifier expected.");
+  x = token;
+  if(nextToken() != '=')
+    processError("\'=\' expected.");
+  y = nextToken();
   
 }
 // Stage 0, Production 7 -> Token should be NON_KEY_ID
@@ -214,19 +244,19 @@ bool isNonKeyId(string s) const {
   // Ensure that the token is not in the symbol table,
   // if .find() returns true then .end() was never reached
   if(symbolTable.find(s) != symbolTable.end())
-    error("Multiply named definition.");
+    processError("Multiply named definition.");
   // Ensure token does not start with a capitalized letter
   if(isupper(token[0]))
-    error("Tokens must begin with a lowercase character.");
+    processError("Tokens must begin with a lowercase character.");
   // Iterate through token to ensure the rest of the characters are valid
   // ALPHANUMS | '_'
   for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
     if(!isalnum(*iter) && *iter != '_')
-      error('Invalid character inside token.');
+      processError('Invalid character inside token.');
   }
   // Ensure that the token is not a reserved keyword
   if(isKeyword(s))
-    error("Reserved keyword \'" + s + "\' cannot be redefined.");
+    processError("Reserved keyword \'" + s + "\' cannot be redefined.");
   // If the token passes all tests, then it is a NON_KEY_ID
   return true;
 }
