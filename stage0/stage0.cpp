@@ -184,14 +184,38 @@ void constStmts() {
     if (x is a NON_KEY_ID)
       constStmts() */
   
-  string x, y = "";
+  string x, y;
   if(!isNonKeyId(token))
     processError("Non-keyword identifier expected.");
   x = token;
   if(nextToken() != '=')
     processError("\'=\' expected.");
   y = nextToken();
-  
+  if(!(y=='+' || y=='-' || y=="not" || y=="true" || y=="false" || isNonKeyId(y) || isInteger(y)))
+    processError("Token to the right of \'=\' is illegal.");
+  if(y=='+' || y=='-') {
+    if(!isInteger(nextToken()))
+      processError("INTEGER expected after sign.");
+    y += token;
+  }
+  if(y=="not") {
+    if(!isBoolean(nextToken()))
+      processError("BOOLEAN expected after \'not\'.");
+    if(token=="true")
+      y = "false";
+    else
+      y = "true";
+  }
+  if(nextToken() != ';')
+    processError("Semicolon \';\' expected.");
+  if(!(isInteger(y) || isBoolean(y)))
+    processError("Data type of token on the right-hand side must be INTEGER or BOOLEAN.");
+  insert(x, whichType(y), CONSTANT, whichValue(y), YES, 1);
+  x = nextToken();
+  if(!(x=="begin" || x=="var" || isNonKeyId(x)))
+    processError("Non-keyword identifier, \'begin\', or \'var\' expected.");
+  if(isNonKeyId(x))
+    constStmts();
 }
 // Stage 0, Production 7 -> Token should be NON_KEY_ID
 void varStmts() {
@@ -211,7 +235,23 @@ void varStmts() {
       processError(non-keyword identifier or "begin" expected)
     if (token is a NON_KEY_ID)
       varStmts() */
-  
+
+  string x, y;
+  if(!isNonKeyId(token))
+    processError("Non-keyword identifier expected.");
+  x = ids();
+  if(token != ':')
+    procesError("\':\' expected.");
+  if(!(isInteger(nextToken()) || isBoolean(nextToken())))
+    processError("Illegal type follows \':\'.");
+  y = token;
+  if(nextToken() != ';')
+    processError("Semicolon \';\' expected.");
+  insert(x, y, VARIABLE, "", YES, 1)
+  if(!(nextToken()=="begin" || isNonKeyId(nextToken())))
+    processError("Non-keyword identifier or \'begin\' expected.");
+  if(isNonKeyId(token))
+    varStmts();
 }
 // Stage 0, Production 8 -> Token should be NON_KEY_ID
 string ids() {
@@ -226,7 +266,17 @@ string ids() {
       tempString = temp + "," + ids()
     } 
     return tempString */
-  
+  string temp, tempString;
+  if(!isNonKeyId(token))
+    processError("Non-keyword identifier expected.");
+  tempString = token;
+  temp = token;
+  if(nextToken()==',') {
+    if(!isNonKeyId(nextToken()))
+      processError("Non-keyword identifier expected.");
+    tempString = temp + ',' + ids();
+  }
+  return tempString;
 }
 
 // Helper functions for the Pascallite lexicon:
