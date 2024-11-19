@@ -8,7 +8,7 @@
 using namespace std;
 
 // Constructor
-Compiler(char **argv) {
+Compiler::Compiler(char **argv) {
  /* open sourceFile using argv[1]
     open listingFile using argv[2]
     open objectFile using argv[3] */
@@ -17,20 +17,20 @@ Compiler(char **argv) {
   objectFile.open(argv[3]);
 }
 // Destructor
-~Compiler() {
+Compiler::~Compiler() {
  /* close all open files */
   sourceFile.close();
   listingFile.close();
   objectFile.close();
 }
 
-void createListingHeader() {
+void Compiler::createListingHeader() {
  /* print "STAGE0:", name(s), DATE, TIME OF DAY
     print "LINE NO:", "SOURCE STATEMENT"
     - line numbers and source statements should be aligned under the headings */
   
 }
-void parser() {
+void Compiler::parser() {
  /* nextChar() 
     // ch must be initialized to the first character of the source file 
     if (nextToken() != "program")
@@ -44,14 +44,14 @@ void parser() {
     // parser implements the grammar rules, calling first rule */
 
 }
-void createListingTrailer() {
+void Compiler::createListingTrailer() {
  /* print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED" */
   
 }
 
 // Methods implementing the grammar productions:
 // Stage 0, Production 1 -> Token should be "program"
-void prog() {
+void Compiler::prog() {
  /* if (token != "program")
       processError(keyword "program" expected)
     progStmt()
@@ -77,7 +77,7 @@ void prog() {
     processError("No text may follow \'end\'.");
 }
 // Stage 0, Production 2 -> Token should be "program"
-void progStmt() {
+void Compiler::progStmt() {
  /* string x
     if (token != "program")
       processError(keyword "program" expected)
@@ -102,7 +102,7 @@ void progStmt() {
   insert(x, PROG_NAME, CONSTANT, x, NO, 0);
 }
 // Stage 0, Production 3 -> Token should be "const"
-void consts() {
+void Compiler::consts() {
  /* if (token != "const")
       processError(keyword "const" expected)
     if (nextToken() is not a NON_KEY_ID)
@@ -116,7 +116,7 @@ void consts() {
   constStmts();
 }
 // Stage 0, Production 4 -> Token should be "var"
-void vars() {
+void Compiler::vars() {
  /* if (token != "var")
       processError(keyword "var" expected)
     if (nextToken() is not a NON_KEY_ID)
@@ -130,7 +130,7 @@ void vars() {
   varStmts();
 }
 // Stage 0, Production 5 -> Token should be "begin"
-void beginEndStmt() {
+void Compiler::beginEndStmt() {
  /* if (token != "begin")
       procesError(keyword "begin" expected)
     if (nextToken() != "end")
@@ -150,7 +150,7 @@ void beginEndStmt() {
   code("end", ".");
 }
 // Stage 0, Production 6 -> Token should be NON_KEY_ID
-void constStmts() {
+void Compiler::constStmts() {
  /* string x,y
     if (token is not a NON_KEY_ID)
       processError(non-keyword identifier expected)
@@ -218,7 +218,7 @@ void constStmts() {
     constStmts();
 }
 // Stage 0, Production 7 -> Token should be NON_KEY_ID
-void varStmts() {
+void Compiler::varStmts() {
  /* string x,y
     if (token is not a NON_KEY_ID)
       processError(non-keyword identifier expected) 
@@ -254,7 +254,7 @@ void varStmts() {
     varStmts();
 }
 // Stage 0, Production 8 -> Token should be NON_KEY_ID
-string ids() {
+string Compiler::ids() {
  /* string temp,tempString
     if (token is not a NON_KEY_ID)
       processError(non-keyword identifier expected) 
@@ -281,16 +281,16 @@ string ids() {
 
 // Helper functions for the Pascallite lexicon:
 // Determines if s is a keyword
-bool isKeyword(string s) const {
+bool Compiler::isKeyword(string s) const {
   return (s=='program' || s=='begin' || s=='end' || s=='var' || s=='const'
     || s=='integer' || s=='boolean' || s=='true' || s=='false' || s=='not');
 }
 // Determines if c is a special symbol
-bool isSpecialSymbol(char c) const {
+bool Compiler::isSpecialSymbol(char c) const {
   return (c=='=' || c==':' || c==',' || c==';' || c=='.' || c=='+' || c=='-');
 }
 // Determines if s is a non_key_id -> ALPHA | ALPHANUMS
-bool isNonKeyId(string s) const {
+bool Compiler::isNonKeyId(string s) const {
   // Ensure that the token is not in the symbol table,
   // if .find() returns true then .end() was never reached
   if(symbolTable.find(s) != symbolTable.end())
@@ -311,7 +311,7 @@ bool isNonKeyId(string s) const {
   return true;
 }
 // Determines if s is an integer -> NUM | NUMS
-bool isInteger(string s) const {
+bool Compiler::isInteger(string s) const {
   // Iterate through the token and check if each character is an integer
   for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
     if(!isdigit(*iter)) return false;
@@ -330,7 +330,7 @@ bool isLiteral(string s) const {
 // Action routines:
 // Create symbol table entry for each identigier in list of external names
 // multiply inserted names (several at once) are illegal
-void insert(string externalName, storeTypes inType, modes inMode,
+void Compiler::insert(string externalName, storeTypes inType, modes inMode,
             string inValue, allocation inAlloc, int inUnits) {
  /* string name
     while (name broken from list of external names and put into name != "") {
@@ -348,7 +348,7 @@ void insert(string externalName, storeTypes inType, modes inMode,
   
 }
 // Tells which data type a name has
-storeTypes whichType(string name) {
+storeTypes Compiler::whichType(string name) {
  /* if (name is a literal) {
       if (name is a boolean literal)
         data type = BOOLEAN
@@ -365,7 +365,7 @@ storeTypes whichType(string name) {
   
 }
 // Tells which value a name has
-string whichValue(string name) {
+string Compiler::whichValue(string name) {
  /* if (name is a literal)
       value = name 
     else { // Name is an identifier and hopefully a constant
@@ -377,7 +377,7 @@ string whichValue(string name) {
     return value */
   
 }
-void code(string op, string operand1 = "", string operand2 = "") {
+void Compiler::code(string op, string operand1 = "", string operand2 = "") {
  /* if (op == "program")
       emitPrologue(operand1)
     else if (op == "end")
@@ -388,7 +388,7 @@ void code(string op, string operand1 = "", string operand2 = "") {
 }
 
 // Emit functions:
-void emit(string label = "", string instruction = "", string operands = "",
+void Compiler::emit(string label = "", string instruction = "", string operands = "",
           string comment = "") {
  /* Turn on left justification in objectFile
     Output label in a field of width 8
@@ -397,7 +397,7 @@ void emit(string label = "", string instruction = "", string operands = "",
     Output the comment */
   
 }
-void emitPrologue(string progName, string = "") {
+void Compiler::emitPrologue(string progName, string = "") {
  /* Output identifying comments at beginning of objectFile
     Output the %INCLUDE directives
     emit("SECTION", ".text")
@@ -405,12 +405,12 @@ void emitPrologue(string progName, string = "") {
     emit("_start:") */
   
 }
-void emitEpilogue(string = "", string = "") {
+void Compiler::emitEpilogue(string = "", string = "") {
  /* emit("","Exit", "{0}")
     emitStorage(); */
   
 }
-void emitStorage() {
+void Compiler::emitStorage() {
  /* emit("SECTION", ".data")
     for (those entries in the symbolTable that have 
     an allocation of YES and a storage mode of CONSTANT) {
@@ -426,7 +426,7 @@ void emitStorage() {
 
 // Lexical routines:
 // Returns the next character or END_OF_FILE marker
-char nextChar() {
+char Compiler::nextChar() {
  /* read in next character
     if (end of file) 
       ch = END_OF_FILE // Use a special character to designate end of file
@@ -439,7 +439,7 @@ char nextChar() {
   
 }
 // Returns the next token or END_OF_FILE marker
-string nextToken() {
+string Compiler::nextToken() {
  /* token = "";
     while (token == "") {
       switch(ch) {
@@ -476,10 +476,10 @@ string nextToken() {
 }
 
 // Other routines:
-string genInternalName(storeTypes stype) const {
+string Compiler::genInternalName(storeTypes stype) const {
 
 }
-void processError(string err) {
+void Compiler::processError(string err) {
  /* Output err to listingFile
     Call exit(EXIT_FAILURE) to terminate program */
 }
