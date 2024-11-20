@@ -422,6 +422,9 @@ void Compiler::emitEpilogue(string = "", string = "") {
  /* emit("","Exit", "{0}")
     emitStorage(); */
   
+  emit("", "Exit", "{0}");
+  objectFile << endl;
+  emitStorage();
 }
 void Compiler::emitStorage() {
  /* emit("SECTION", ".data")
@@ -449,7 +452,20 @@ char Compiler::nextChar() {
       print to listing file (starting new line if necessary)
     }
     return ch */
-  
+
+  sourceFile.get(ch);
+  static char prevChar = '\n';
+  if(sourceFile.eof())
+    ch = END_OF_FILE;
+  else {
+    if(prevChar == '\n') {
+      ++lineNo;
+      listingFile << setw(5) << lineNo << '|';
+    }
+    listingFile << ch;
+  }
+  prevChar = ch;
+  return ch;
 }
 // Returns the next token or END_OF_FILE marker
 string Compiler::nextToken() {
@@ -555,7 +571,7 @@ string Compiler::genInternalName(storeTypes stype) const {
 void Compiler::processError(string err) {
  /* Output err to listingFile
     Call exit(EXIT_FAILURE) to terminate program */
-  listingFile << endl << "Error: line " << lineNum << ": " << err << endl;
+  listingFile << endl << "Error: line " << lineNo << ": " << err << endl;
   ++errorCount;
   listingFile << "\nCOMPILATION TERMINATED " << errorCount << " ERROR ENCOUNTERED" << endl;
   exit(-1);
