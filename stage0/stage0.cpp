@@ -1,8 +1,6 @@
 // Erik Zuniga && Roberto Lopez
 // CS4301 - Compilers Project Stage-0
 
-// Twhats up bruo
-
 #include <stage0.h>
 #include <string>
 using namespace std;
@@ -28,7 +26,9 @@ void Compiler::createListingHeader() {
  /* print "STAGE0:", name(s), DATE, TIME OF DAY
     print "LINE NO:", "SOURCE STATEMENT"
     - line numbers and source statements should be aligned under the headings */
-  
+  time_t now = time(null);
+  listingFile << "STAGE0: Erik Zuniga and Roberto Lopez       " << ctime(&now) << endl;
+  listingFile << "LINE NO.              " << "SOURCE STATEMENT" << endl << endl;
 }
 void Compiler::parser() {
  /* nextChar() 
@@ -42,11 +42,15 @@ void Compiler::parser() {
     // the next token.
     prog()
     // parser implements the grammar rules, calling first rule */
-
+  nextChar();
+  if(nextToken() != "program")
+    processError("Keyword \'program\'. expected.");
+  prog();
 }
 void Compiler::createListingTrailer() {
  /* print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED" */
-  
+  listingFile << endl << "COMPILATION TERMINATED ";
+  listingFile << right << setw(6) << errorCount; << " ERRORS ENCOUNTERED" << endl;
 }
 
 // Methods implementing the grammar productions:
@@ -141,7 +145,7 @@ void Compiler::beginEndStmt() {
     code("end", ".") */
   
   if(token != "begin")
-    procesError("Keyword \'begin\' expected.");
+    processError("Keyword \'begin\' expected.");
   if(nextToken() != "end")
     processError("Keyword \'end\' expected.");
   if(nextToken() != ".")
@@ -208,9 +212,12 @@ void Compiler::constStmts() {
   }
   if(nextToken() != ';')
     processError("Semicolon \';\' expected.");
-  if(!(isInteger(y) || isBoolean(y)))
+
+  storeTypes type = whichType(y);
+  if(!(type != INTEGER || type != BOOLEAN))
     processError("Data type of token on the right-hand side must be INTEGER or BOOLEAN.");
   insert(x, whichType(y), CONSTANT, whichValue(y), YES, 1);
+
   x = nextToken();
   if(!(x=="begin" || x=="var" || isNonKeyId(x)))
     processError("Non-keyword identifier, \'begin\', or \'var\' expected.");
@@ -241,12 +248,16 @@ void Compiler::varStmts() {
     processError("Non-keyword identifier expected.");
   x = ids();
   if(token != ':')
-    procesError("\':\' expected.");
-  if(!(isInteger(nextToken()) || isBoolean(nextToken())))
+    processError("\':\' expected.");
+
+  nextToken();
+  if(!(token=="integer" || token=="boolean"))
     processError("Illegal type follows \':\'.");
+
   y = token;
   if(nextToken() != ';')
     processError("Semicolon \';\' expected.");
+
   insert(x, y, VARIABLE, "", YES, 1)
   if(!(nextToken()=="begin" || isNonKeyId(nextToken())))
     processError("Non-keyword identifier or \'begin\' expected.");
@@ -266,6 +277,7 @@ string Compiler::ids() {
       tempString = temp + "," + ids()
     } 
     return tempString */
+
   string temp, tempString;
   if(!isNonKeyId(token))
     processError("Non-keyword identifier expected.");
@@ -314,6 +326,7 @@ bool Compiler::isNonKeyId(string s) const {
 bool Compiler::isInteger(string s) const {
   // Iterate through the token and check if each character is an integer
   for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
+    if(*iter==';') break;
     if(!isdigit(*iter)) return false;
   }
   return true;
