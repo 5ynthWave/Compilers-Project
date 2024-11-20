@@ -128,15 +128,15 @@ void Compiler::vars() {
     varStmts() */
   
   if(token != "var")
-    procesError("Keyword \'var\' expected.");
+    processError("Keyword \'var\' expected.");
   if(!isNonKeyId(nextToken()))
-    procesError("Non-keyword identifier must follow \'var\'.");
+    processError("Non-keyword identifier must follow \'var\'.");
   varStmts();
 }
 // Stage 0, Production 5 -> Token should be "begin"
 void Compiler::beginEndStmt() {
  /* if (token != "begin")
-      procesError(keyword "begin" expected)
+      processError(keyword "begin" expected)
     if (nextToken() != "end")
       processError(keyword "end" expected)
     if (nextToken() != ".")
@@ -195,17 +195,17 @@ void Compiler::constStmts() {
   if(nextToken() != '=')
     processError("\'=\' expected.");
   y = nextToken();
-  if(!(y=='+' || y=='-' || y=="not" || y=="true" || y=="false" || isNonKeyId(y) || isInteger(y)))
+  if(!(y == '+' || y == '-' || y == "not" || y == "true" || y == "false" || isNonKeyId(y) || isInteger(y)))
     processError("Token to the right of \'=\' is illegal.");
-  if(y=='+' || y=='-') {
+  if(y == '+' || y == '-') {
     if(!isInteger(nextToken()))
       processError("INTEGER expected after sign.");
     y += token;
   }
-  if(y=="not") {
+  if(y == "not") {
     if(!isBoolean(nextToken()))
       processError("BOOLEAN expected after \'not\'.");
-    if(token=="true")
+    if(token == "true")
       y = "false";
     else
       y = "true";
@@ -219,7 +219,7 @@ void Compiler::constStmts() {
   insert(x, whichType(y), CONSTANT, whichValue(y), YES, 1);
 
   x = nextToken();
-  if(!(x=="begin" || x=="var" || isNonKeyId(x)))
+  if(!(x == "begin" || x == "var" || isNonKeyId(x)))
     processError("Non-keyword identifier, \'begin\', or \'var\' expected.");
   if(isNonKeyId(x))
     constStmts();
@@ -251,7 +251,7 @@ void Compiler::varStmts() {
     processError("\':\' expected.");
 
   nextToken();
-  if(!(token=="integer" || token=="boolean"))
+  if(!(token == "integer" || token == "boolean"))
     processError("Illegal type follows \':\'.");
 
   y = token;
@@ -259,7 +259,7 @@ void Compiler::varStmts() {
     processError("Semicolon \';\' expected.");
 
   insert(x, y, VARIABLE, "", YES, 1)
-  if(!(nextToken()=="begin" || isNonKeyId(nextToken())))
+  if(!(nextToken() == "begin" || isNonKeyId(nextToken())))
     processError("Non-keyword identifier or \'begin\' expected.");
   if(isNonKeyId(token))
     varStmts();
@@ -283,7 +283,7 @@ string Compiler::ids() {
     processError("Non-keyword identifier expected.");
   tempString = token;
   temp = token;
-  if(nextToken()==',') {
+  if(nextToken() == ',') {
     if(!isNonKeyId(nextToken()))
       processError("Non-keyword identifier expected.");
     tempString = temp + ',' + ids();
@@ -294,12 +294,12 @@ string Compiler::ids() {
 // Helper functions for the Pascallite lexicon:
 // Determines if s is a keyword
 bool Compiler::isKeyword(string s) const {
-  return (s=='program' || s=='begin' || s=='end' || s=='var' || s=='const'
-    || s=='integer' || s=='boolean' || s=='true' || s=='false' || s=='not');
+  return (s == "program" || s == "begin" || s == "end" || s == "var" || s == "const"
+    || s == "integer" || s == "boolean" || s == "true" || s == "false" || s == "not");
 }
 // Determines if c is a special symbol
 bool Compiler::isSpecialSymbol(char c) const {
-  return (c=='=' || c==':' || c==',' || c==';' || c=='.' || c=='+' || c=='-');
+  return (c == '=' || c == ':' || c == ',' || c == ';' || c == '.' || c == '+' || c == '-');
 }
 // Determines if s is a non_key_id -> ALPHA | ALPHANUMS
 bool Compiler::isNonKeyId(string s) const {
@@ -326,18 +326,18 @@ bool Compiler::isNonKeyId(string s) const {
 bool Compiler::isInteger(string s) const {
   // Iterate through the token and check if each character is an integer
   for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
-    if(*iter==';') break;
+    if(*iter == ';') break;
     if(!isdigit(*iter)) return false;
   }
   return true;
 }
 // Determines if s is a boolean
 bool isBoolean(string s) const {
-  return (s=='true' || s=='false');
+  return (s == "true" || s == "false");
 }
 // Determines if s is a literal
 bool isLiteral(string s) const {
-  return (isInteger(s) || isBoolean(s) || s=='not' || s=='+' || s=='-');
+  return (isInteger(s) || isBoolean(s) || s == "not" || s=='+' || s=='-');
 }
 
 // Action routines:
@@ -486,13 +486,77 @@ string Compiler::nextToken() {
     }
     return token */
   
+  token = "";
+  while(token == "") {
+    if(ch == '{') {
+      // Stay on a loop to simply read a comment, do nothing
+      while(nextChar() != END_OF_FILE && ch != '}') {}
+      if(ch == END_OF_FILE)
+        processError("Unexpected end of file marker: \'}\' expected.");
+      // A '}' was found.
+      else nextChar();
+    }
+    else if(ch == '}')
+      processError("\'}\' cannot begin token.");
+    else if(isspace(ch))
+      nextChar();
+    else if(isSpecialSymbol(ch)) {
+      token = ch;
+      nextChar();
+    }
+    else if(islower(ch)) {
+      token = ch;
+      while(nextChar() == '_' || isalpha(ch) || isdigit(ch) && ch != END_OF_FILE)
+        token += ch;
+      if(ch == END_OF_FILE)
+        processError("Unexpected end of file marker.");
+    }
+    else if(isdigit(ch)) {
+      token = ch;
+      while(isdigit(nextChar()) && ch != END_OF_FILE)
+        token += ch;
+      if(ch == END_OF_FILE)
+        processError("Unexpected end of file marker.");
+    }
+    else if(ch == END_OF_FILE)
+      token = ch;
+    else
+      processError("Illegal symbol.");
+  }
+  // Token sizes are maximum of length 15
+  token = token.substr(0, 15);
+  return token;
 }
 
 // Other routines:
 string Compiler::genInternalName(storeTypes stype) const {
-
+  string name;
+  // Integers to count the number of I's and B's
+  // in the assembler file
+  static int numsI, numsB = 0;
+  switch(stype) {
+    case PROG_NAME: {
+      name = "P0";
+      break;
+    }
+    case INTEGER: {
+      name = "I" + to_string(numsI);
+      ++numsI;
+      break;
+    }
+    case BOOLEAN: {
+      name = "B" + to_string(numsB);
+      ++numsB;
+      break;      
+    }
+  }
+  return name;
 }
 void Compiler::processError(string err) {
  /* Output err to listingFile
     Call exit(EXIT_FAILURE) to terminate program */
+  listingFile << endl << "Error: line " << lineNum << ": " << err << endl;
+  ++errorCount;
+  listingFile << "\nCOMPILATION TERMINATED " << errorCount << " ERROR ENCOUNTERED" << endl;
+  exit(-1);
 }
