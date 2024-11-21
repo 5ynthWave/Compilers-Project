@@ -358,56 +358,33 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
           symbolTable[name]=(genInternalName(inType),inType,inMode,inValue,inAlloc,inUnits)
       }
     } */
-
-  //create symbol table entry for each identifier in list of external names
-	 //multiply inserted names are illegal
-
-   //wil need to check this later 
 	string name;
-
 	string::iterator itr = externalName.begin();		
 	
 	while (itr < externalName.end())
   {
 		name = "";
-		
 		while (itr < externalName.end() && *itr != ',' ){
-
 			name = name + *itr;
 			//cout << name << '\n'; 
 			++itr;
 			//cout << "Still in the second loop...\n"; 
-
 		}
-		
-		//infitate loop
+		// infinite loop
 		// cout << "Exited inner while loop!\n"; // 
-
-		if (!name.empty()){
-
-			if (symbolTable.count(name) > 0){
-
-				processError("multiple name definition");
-
-			}else if (isKeyword(name)){
-
-				processError("illegal use of keyword");
-
-			}else{ // create table entry 
-			
-				if (isupper(name[0])){} // is internal name
-				
-					symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15), // key
-					SymbolTableEntry(name, inType, inMode, inValue, inAlloc, inUnits))); // value
-				
-        }else{ // is an external name, need to create an internal name
-				
-
+		if (!name.empty()) {
+			if (symbolTable.count(name) > 0) {
+				processError("Multiple name definition.");
+			} else if (isKeyword(name)){
+				processError("Illegal use of keyword.");
+			} else { // Create table entry 
+				if (isupper(name[0])) { // Is internal name
+					symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15), // Key
+					SymbolTableEntry(name, inType, inMode, inValue, inAlloc, inUnits))); // Value
+        } else { // Is an external name, must to create an internal name
 					symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15),
 					SymbolTableEntry(genInternalName(inType), inType, inMode, inValue, inAlloc, inUnits)));
-				
         }
-
 				// adding output of SymbolTable for verification
 				// ------------------------------------------------------------------
 				// check for entries in symbolTable map
@@ -423,12 +400,10 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
 				cout << setw(78) << setfill('_') << "_" << '\n';
 				cout << setfill(' ');
 				
-
 				for (auto it = symbolTable.begin(); it != symbolTable.end(); ++it) {
 			        // Access the key and value using the iterator
 			        string key = it->first;
 			        SymbolTableEntry value = it->second;
-
 			        // Print the key-value pair
 			        cout << setw(15) << it->first << "|";
 							cout << setw(15) << it->second.getInternalName() << '|';
@@ -436,31 +411,21 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
 							cout << setw(8) << it->second.getMode() << '|';
 							cout << setw(15) << it->second.getValue() << '|';
 							cout << setw(5) << it->second.getAlloc() << '|';
-							cout << it->second.getUnits() << '\n';
-							
-							
-							
+							cout << it->second.getUnits() << '\n';	
 				if (symbolTable.size() > 256)
 				{
 					processError("Cannot hold over 256 entries");
 				}
-
 			  }
-			
 			  cout << '\n';
 				// ------------------------------------------------------------------
-				
 				*/
 				
-				if (symbolTable.size() > 256){
-
+				if (symbolTable.size() > 256)
 					processError("Cannot hold over 256 entries");
-          
-				}
 			}
 		}
-
-		++itr; //need to increment itr to get past comma (prevents infinite loop)
+		++itr; // Need to increment itr to get past comma (prevents infinite loop)
 	}
   
 }
