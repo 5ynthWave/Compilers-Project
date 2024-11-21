@@ -409,6 +409,11 @@ void Compiler::emit(string label = "", string instruction = "", string operands 
     Output the operands in a field of width 24
     Output the comment */
   
+  objectFile.setf(ios_base::left);
+  objectFile << left << setw(8) << label;
+  objectFile << left << setw(8) << instruction;
+  objectFile << left << setw(24) << operands;
+  objectFile << comment << endl;
 }
 void Compiler::emitPrologue(string progName, string = "") {
  /* Output identifying comments at beginning of objectFile
@@ -417,6 +422,13 @@ void Compiler::emitPrologue(string progName, string = "") {
     emit("global", "_start", "", "; program " + progName)
     emit("_start:") */
   
+  time_t current = time(0);
+  char* time = ctime(&current);
+  objectFile << "; Erik Zuniga and Roberto Lopez       " << right << setw(6) << time;
+  objectFile << "%INCLUDE \"Along32.inc\"\n" << "%INCLUDE \"Macros_Along.inc\"\n" << endl;
+  emit("SECTION", ".text");
+  emit("global", "_start", "", "; program " + progName);
+  emit("_start");
 }
 void Compiler::emitEpilogue(string = "", string = "") {
  /* emit("","Exit", "{0}")
