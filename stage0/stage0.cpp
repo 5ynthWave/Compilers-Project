@@ -3,6 +3,11 @@
 
 #include <stage0.h>
 #include <string>
+#include <cstring>
+#include <ctime>
+#include <iomanip>
+#include <cctype>
+#include <map>
 using namespace std;
 
 // Constructor
@@ -26,7 +31,7 @@ void Compiler::createListingHeader() {
  /* print "STAGE0:", name(s), DATE, TIME OF DAY
     print "LINE NO:", "SOURCE STATEMENT"
     - line numbers and source statements should be aligned under the headings */
-  time_t now = time(null);
+  time_t now = time(NULL);
   listingFile << "STAGE0: Erik Zuniga and Roberto Lopez       " << ctime(&now) << endl;
   listingFile << "LINE NO.              " << "SOURCE STATEMENT" << endl << endl;
 }
@@ -50,7 +55,7 @@ void Compiler::parser() {
 void Compiler::createListingTrailer() {
  /* print "COMPILATION TERMINATED", "# ERRORS ENCOUNTERED" */
   listingFile << endl << "COMPILATION TERMINATED ";
-  listingFile << right << setw(6) << errorCount; << " ERRORS ENCOUNTERED" << endl;
+  listingFile << right << setw(6) << errorCount << " ERRORS ENCOUNTERED" << endl;
 }
 
 // Methods implementing the grammar productions:
@@ -99,7 +104,7 @@ void Compiler::progStmt() {
   string x = nextToken();
   if(!isNonKeyId(token))
     processError("Program name expected.");
-  if(nextToken() != ';')
+  if(nextToken() != ";")
     processError("Semicolon \';\' expected.");
   nextToken();
   code("program", x);
@@ -192,12 +197,12 @@ void Compiler::constStmts() {
   if(!isNonKeyId(token))
     processError("Non-keyword identifier expected.");
   x = token;
-  if(nextToken() != '=')
+  if(nextToken() != "=")
     processError("\'=\' expected.");
   y = nextToken();
-  if(!(y == '+' || y == '-' || y == "not" || y == "true" || y == "false" || isNonKeyId(y) || isInteger(y)))
+  if(!(y == "+" || y == "+" || y == "not" || y == "true" || y == "false" || isNonKeyId(y) || isInteger(y)))
     processError("Token to the right of \'=\' is illegal.");
-  if(y == '+' || y == '-') {
+  if(y == +"+" || y == "-") {
     if(!isInteger(nextToken()))
       processError("INTEGER expected after sign.");
     y += token;
@@ -210,7 +215,7 @@ void Compiler::constStmts() {
     else
       y = "true";
   }
-  if(nextToken() != ';')
+  if(nextToken() != ";")
     processError("Semicolon \';\' expected.");
 
   storeTypes type = whichType(y);
@@ -247,7 +252,7 @@ void Compiler::varStmts() {
   if(!isNonKeyId(token))
     processError("Non-keyword identifier expected.");
   x = ids();
-  if(token != ':')
+  if(token != ":")
     processError("\':\' expected.");
 
   nextToken();
@@ -255,10 +260,10 @@ void Compiler::varStmts() {
     processError("Illegal type follows \':\'.");
 
   y = token;
-  if(nextToken() != ';')
+  if(nextToken() != ";")
     processError("Semicolon \';\' expected.");
 
-  insert(x, y, VARIABLE, "", YES, 1)
+  insert(x, whichType(y), VARIABLE, "", YES, 1);
   if(!(nextToken() == "begin" || isNonKeyId(nextToken())))
     processError("Non-keyword identifier or \'begin\' expected.");
   if(isNonKeyId(token))
@@ -283,7 +288,7 @@ string Compiler::ids() {
     processError("Non-keyword identifier expected.");
   tempString = token;
   temp = token;
-  if(nextToken() == ',') {
+  if(nextToken() == ",") {
     if(!isNonKeyId(nextToken()))
       processError("Non-keyword identifier expected.");
     tempString = temp + ',' + ids();
@@ -303,23 +308,42 @@ bool Compiler::isSpecialSymbol(char c) const {
 }
 // Determines if s is a non_key_id -> ALPHA | ALPHANUMS
 bool Compiler::isNonKeyId(string s) const {
-  // Ensure that the token is not in the symbol table,
+  /* Ensure that the token is not in the symbol table,
   // if .find() returns true then .end() was never reached
   if(symbolTable.find(s) != symbolTable.end())
-    processError("Multiply named definition.");
+    processError("Multiple name definition.");
   // Ensure token does not start with a capitalized letter
   if(isupper(token[0]))
     processError("Tokens must begin with a lowercase character.");
   // Iterate through token to ensure the rest of the characters are valid
   // ALPHANUMS | '_'
   for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
-    if(!isalnum(*iter) && *iter != '_')
-      processError('Invalid character inside token.');
+    if(!isalnum(*iter) && *iter != "_")
+      processError("Invalid character inside token.");
   }
   // Ensure that the token is not a reserved keyword
   if(isKeyword(s))
     processError("Reserved keyword \'" + s + "\' cannot be redefined.");
   // If the token passes all tests, then it is a NON_KEY_ID
+  return true; */
+
+  if(isKeyword(s)) return false;
+  // Tokens must start with a lowercase letter
+  if(!isalpha(s[0]) && !islower(s[0])) return false;
+  // Double check token so that it doesn't start with a number or underscore
+  if(isdigit(s[0]) || s[0] == '_') return false;
+
+  for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
+    // Check for invalid special symbols (only accept '_')
+    if(isSpecialSymbol(*iter) && *iter != '_') return false;
+    // NON-KEY-IDs must be only lowercase
+    if(isalpha(*iter) && !islower(*iter)) return false;
+
+    // Cover the edge-case in 049.dat, no underscore can proceed an underscore
+    if(*iter == '_' && *(iter+1) == '_') return false;
+  }
+  // Cover the edge-case in 020.dat, no underscore can end a token
+  if(s[s.length()-1] == '_') return false;
   return true;
 }
 // Determines if s is an integer -> NUM | NUMS
@@ -332,12 +356,20 @@ bool Compiler::isInteger(string s) const {
   return true;
 }
 // Determines if s is a boolean
-bool isBoolean(string s) const {
+bool Compiler::isBoolean(string s) const {
   return (s == "true" || s == "false");
 }
 // Determines if s is a literal
-bool isLiteral(string s) const {
-  return (isInteger(s) || isBoolean(s) || s == "not" || s=='+' || s=='-');
+bool Compiler::isLiteral(string s) const {
+  if(isInteger(s) || isBoolean(s)) return true;
+  // If the variable starts with a +,- then check that the rest is an integer
+  if(s[0] == '+' || s[0] == '-') {
+    for(string::iterator iter = s.begin(); iter != s.end(); ++iter) {
+      if(!isdigit(*iter)) return false;
+    }
+    return true;
+  }
+  return false;
 }
 
 // Action routines:
@@ -364,7 +396,7 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
 	while (itr < externalName.end())
   {
 		name = "";
-		while (itr < externalName.end() && *itr != ',' ){
+		while (itr < externalName.end() && *itr != ',' ) {
 			name = name + *itr;
 			//cout << name << '\n'; 
 			++itr;
@@ -490,7 +522,7 @@ string Compiler::whichValue(string name) {
   }
   return value;
 }
-void Compiler::code(string op, string operand1 = "", string operand2 = "") {
+void Compiler::code(string op, string operand1, string operand2) {
  /* if (op == "program")
       emitPrologue(operand1)
     else if (op == "end")
@@ -507,8 +539,7 @@ void Compiler::code(string op, string operand1 = "", string operand2 = "") {
 }
 
 // Emit functions:
-void Compiler::emit(string label = "", string instruction = "", string operands = "",
-          string comment = "") {
+void Compiler::emit(string label, string instruction, string operands, string comment) {
  /* Turn on left justification in objectFile
     Output label in a field of width 8
     Output instruction in a field of width 8
@@ -521,7 +552,7 @@ void Compiler::emit(string label = "", string instruction = "", string operands 
   objectFile << left << setw(24) << operands;
   objectFile << comment << endl;
 }
-void Compiler::emitPrologue(string progName, string = "") {
+void Compiler::emitPrologue(string progName, string operand2) {
  /* Output identifying comments at beginning of objectFile
     Output the %INCLUDE directives
     emit("SECTION", ".text")
@@ -536,7 +567,7 @@ void Compiler::emitPrologue(string progName, string = "") {
   emit("global", "_start", "", "; program " + progName);
   emit("_start");
 }
-void Compiler::emitEpilogue(string = "", string = "") {
+void Compiler::emitEpilogue(string progName, string operand2) {
  /* emit("","Exit", "{0}")
     emitStorage(); */
   
@@ -555,7 +586,10 @@ void Compiler::emitStorage() {
     an allocation of YES and a storage mode of VARIABLE) {
       call emit to output a line to objectFile 
     } */
-  
+
+  // Declare a new iterator through the symbolTable map
+  map<string, SymbolTableEntry>::iterator iter = symbolTable.begin();
+
   // Output the "SECTION .data" section
   emit("SECTION", ".data");
   for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {
@@ -578,7 +612,7 @@ void Compiler::emitStorage() {
   for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {
     if(iter->second.getAlloc() == YES && iter->second.getMode() == VARIABLE) {
       // Emit the output line to objectFile
-      emit(iter->second.getInternalName(), "resd", "1", "; ", + iter->first);
+      emit(iter->second.getInternalName(), "resd", "1", "; " + iter->first);
     }
   }
 }
@@ -665,7 +699,7 @@ string Compiler::nextToken() {
     }
     else if(islower(ch)) {
       token = ch;
-      while(nextChar() == '_' || isalpha(ch) || isdigit(ch) && ch != END_OF_FILE)
+      while((nextChar() == '_' || isalpha(ch) || isdigit(ch)) && ch != END_OF_FILE)
         token += ch;
       if(ch == END_OF_FILE)
         processError("Unexpected end of file marker.");
