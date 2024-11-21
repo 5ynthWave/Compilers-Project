@@ -358,6 +358,110 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
           symbolTable[name]=(genInternalName(inType),inType,inMode,inValue,inAlloc,inUnits)
       }
     } */
+
+  //create symbol table entry for each identifier in list of external names
+	 //multiply inserted names are illegal
+
+   //wil need to check this later 
+	string name;
+
+	string::iterator itr = externalName.begin();		
+	
+	while (itr < externalName.end())
+  {
+		name = "";
+		
+		while (itr < externalName.end() && *itr != ',' ){
+
+			name = name + *itr;
+			//cout << name << '\n'; 
+			++itr;
+			//cout << "Still in the second loop...\n"; 
+
+		}
+		
+		//infitate loop
+		// cout << "Exited inner while loop!\n"; // 
+
+		if (!name.empty()){
+
+			if (symbolTable.count(name) > 0){
+
+				processError("multiple name definition");
+
+			}else if (isKeyword(name)){
+
+				processError("illegal use of keyword");
+
+			}else{ // create table entry 
+			
+				if (isupper(name[0])){} // is internal name
+				
+					symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15), // key
+					SymbolTableEntry(name, inType, inMode, inValue, inAlloc, inUnits))); // value
+				
+        }else{ // is an external name, need to create an internal name
+				
+
+					symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15),
+					SymbolTableEntry(genInternalName(inType), inType, inMode, inValue, inAlloc, inUnits)));
+				
+        }
+
+				// adding output of SymbolTable for verification
+				// ------------------------------------------------------------------
+				// check for entries in symbolTable map
+				/*
+				cout << "Contents of symbolTable:\n"; 
+				cout << left << setw(15) << "Key" << "|";
+				cout << setw(15) << "Internal Name" << "|";
+				cout << setw(9) << "Data Type" << "|";
+				cout << setw(8) << "Mode" << "|";
+				cout << setw(15) << "Value" << "|";
+				cout << setw(5) << "Alloc" << "|";
+				cout << "Units" << '\n';
+				cout << setw(78) << setfill('_') << "_" << '\n';
+				cout << setfill(' ');
+				
+
+				for (auto it = symbolTable.begin(); it != symbolTable.end(); ++it) {
+			        // Access the key and value using the iterator
+			        string key = it->first;
+			        SymbolTableEntry value = it->second;
+
+			        // Print the key-value pair
+			        cout << setw(15) << it->first << "|";
+							cout << setw(15) << it->second.getInternalName() << '|';
+							cout << setw(9) << it->second.getDataType() << '|';
+							cout << setw(8) << it->second.getMode() << '|';
+							cout << setw(15) << it->second.getValue() << '|';
+							cout << setw(5) << it->second.getAlloc() << '|';
+							cout << it->second.getUnits() << '\n';
+							
+							
+							
+				if (symbolTable.size() > 256)
+				{
+					processError("Cannot hold over 256 entries");
+				}
+
+			  }
+			
+			  cout << '\n';
+				// ------------------------------------------------------------------
+				
+				*/
+				
+				if (symbolTable.size() > 256){
+
+					processError("Cannot hold over 256 entries");
+          
+				}
+			}
+		}
+
+		++itr; //need to increment itr to get past comma (prevents infinite loop)
+	}
   
 }
 // Tells which data type a name has
