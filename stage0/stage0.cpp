@@ -375,7 +375,7 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
 		if (!name.empty()) {
 			if (symbolTable.count(name) > 0) {
 				processError("Multiple name definition.");
-			} else if (isKeyword(name)){
+			} else if (isKeyword(name)) {
 				processError("Illegal use of keyword.");
 			} else { // Create table entry 
 				if (isupper(name[0])) { // Is internal name
@@ -445,6 +445,23 @@ storeTypes Compiler::whichType(string name) {
     }
     return data type */
   
+  // Declare an iterator to symbolTable map, start at the
+  // address of the name (if it's there)
+  map<string, SymbolTableEntry>::iterator iter = symbolTable.find(name);
+  
+  storeTypes type;
+  if(isLiteral(name)) {
+    if(isBoolean(name))
+      type = BOOLEAN;
+    else
+      type = INTEGER;
+  } else { // Name is an identifier and hopefully a constant
+    if(symbolTable.count(name) > 0)
+      type = iter->second.getDataType();
+    else
+      processError("Non-keyword identigier or literal expected.");
+  }
+  return type;
 }
 // Tells which value a name has
 string Compiler::whichValue(string name) {
@@ -457,7 +474,21 @@ string Compiler::whichValue(string name) {
         processError(reference to undefined constant)
     }
     return value */
-  
+
+  // Declare an iterator to symbolTable map, start at the
+  // address of the name (if it's there)
+  map<string, SymbolTableEntry>::iterator iter = symbolTable.find(name);
+  string value;
+  if(isLiteral(name))
+    value = name;
+  else {
+    // Check if symbolTable(name) is defined and has a value
+    if(iter->second.getValue() != "" && symbolTable.count(name) > 0)
+      value = iter->second.getValue();
+    else
+      processError("Reference to undefined constant.");
+  }
+  return value;
 }
 void Compiler::code(string op, string operand1 = "", string operand2 = "") {
  /* if (op == "program")
