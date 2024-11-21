@@ -560,6 +560,31 @@ void Compiler::emitStorage() {
       call emit to output a line to objectFile 
     } */
   
+  // Output the "SECTION .data" section
+  emit("SECTION", ".data");
+  for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {
+    // For entries in the symbolTable with allocation=YES and storage_mode=CONSTANT
+    if(iter->second.getAlloc() == YES && iter->second.getMode() == CONSTANT) {
+      // Check boolean values
+      string value = iter->second.getValue();
+      if(iter->second.getValue() == "false")
+        value = "0";
+      if(iter->second.getValue() == "true")
+        value = "1";
+      // Emit the output line to objectFile
+      emit(iter->second.getInternalName(), "dd", value, "; " + iter->first);
+    }
+  }
+
+  // Output the "SECTION .bss" section
+  objectFile << "\n";
+  emit("SECTION", ".bss");
+  for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {
+    if(iter->second.getAlloc() == YES && iter->second.getMode() == VARIABLE) {
+      // Emit the output line to objectFile
+      emit(iter->second.getInternalName(), "resd", "1", "; ", + iter->first);
+    }
+  }
 }
 
 // Lexical routines:
