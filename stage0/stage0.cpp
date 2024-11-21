@@ -502,6 +502,12 @@ void Compiler::code(string op, string operand1 = "", string operand2 = "") {
     else
       processError(compiler error since function code should not be called with illegal arguments) */
   
+  if(op == "program")
+    emitPrologue(operand1);
+  else if(op == "end")
+    emitEpilogue();
+  else
+    processError("Compiler error: function code should not be called with illegal arguments.");
 }
 
 // Emit functions:
