@@ -1,50 +1,184 @@
 // Erik Zuniga && Roberto Lopez
 // CS4301 - stage1
 
+#include <stage1.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string>
+#include <ctime>
+using namespace std;
+
 // Constructor
 Compiler(char **argv) {
+  sourceFile.open(argv[1]);
+  listingFile.open(argv[2]);
+  objectFile.open(argv[3]);
 }
 // Destructor
 ~Compiler() {
-
+  sourceFile.close();
+  listingFile.close();
+  objectFile.close();
 }
 
 void createListingHeader() {
-
+  time_t now = time(0);
+  listingFile << "STAGE 1: " << "Erik Zuniga & Roberto Lopez" << ctime(&now) << endl;
+  listingFile << "LINE NO." << setw(10) << "SOURCE STATEMENT\n" << endl;
 }
 void parser() {
-
+  nextChar();
+  if(nextToken() != "program") {
+    processError("keyword \"program\" expected");
+  }
+  prog();
 }
 void createListingTrailer() {
-
+  listingFile << "\nCOMPILATION TERMINATED" << setw(6) << "" << right
+    << errorCount << (errorCount == 1 ? " ERROR" : " ERRORS") << " ENCOUNTERED" << endl;
 }
 
 // Methods implementing the grammar productions
 // Stage 0, Production 1 ..
 void prog() {
-
+	if (token != "program")
+		processError("keyword \"program\" expected");
+	progStmt();
+	if (token == "const")
+		consts();
+	if (token == "var")
+		vars();
+	if (token != "begin")
+		processError("keyword\"begin\" expected");
+	beginEndStmt();
+	if (token[0] != END_OF_FILE)
+		processError("no text may follow \"end\"");
 }
 void progStmt() {
-
+	string x;
+	if (token != "program")
+		processError("keyword \"program\" expected");
+	x = nextToken(); 
+	if (!isNonKeyId(token))
+		processError("program name expected");
+	if (nextToken() != ";")
+		processError("semicolon expected");
+	nextToken();
+	code("program", x);
+	insert(x, PROG_NAME, CONSTANT, x, NO, 0);
 }
 void consts() {
-
+	if (token != "const")
+		processError("keyword \"const\" expected");
+	if (!isNonKeyId(nextToken()))
+		processError("non-keyword identifier must follow \"const\"");
+	constStmts();
 }
 void vars() {
-
+  if (token != "var")
+		processError("keyword \"var\" expected");
+	if (!isNonKeyId(nextToken()))
+		processError("non-keyword identifier must follow \"var\"");
+	varStmts();
 }
 void beginEndStmt() {
-
+  if (token != "begin")
+    processError("keyword \"begin\" expected");
+  // Call next token to validate it
+  nextToken();
+  if (isNonKeyId(token) || token == "begin" || token == "read" || token == "write" || token == ";")
+    execStmts();
+  if (nextToken() != "end")
+    processError("keyword \"end\" expected");
+  if (nextToken() != ".")
+    processError("period expected");
+  nextToken();
+  code("end", ".");
 }
 void constStmts() {
-
+  string x,y;
+  if(!isNonKeyId(token))
+	  processError("non-keyword identifier expected");
+  
+  x = token;
+  if (nextToken() != "=")
+	  processError("\"=\" expected");
+  y = nextToken();
+  
+  if(y != "+" && y != "-"  && y != "not" && !isNonKeyId(y) && y != "true" && y != "false" && !isInteger(y))
+	  processError("token to right of \"=\" illegal");
+  if (y == "+" || y == "-") {
+	  if(!isInteger(nextToken()))
+		  processError("integer expected after sign");
+	  y = y + token;
+  }
+  
+  if (y == "not") {
+	  if(!(isBoolean(nextToken())))
+	    processError("boolean expected after \"not\"");
+	  if (token == "true")
+	  	y = "false";
+	  else
+	  	y = "true";
+  } 
+  
+  if (nextToken() != ";")
+	  processError("semicolon expected");
+  
+  storeTypes type = whichType(y);
+  if (type != INTEGER && type != BOOLEAN)
+	  processError("data type of token on the right-hand side must be INTEGER or BOOLEAN");
+  insert(x, whichType(y), CONSTANT, whichValue(y), YES, 1);
+  x = nextToken();
+  if (x != "begin" && x != "var" && !isNonKeyId(x))
+	  processError("non-keyword identifier, \"begin\", or \"var\" expected");
+  if (isNonKeyId(x))
+	  constStmts();
 }
 void varStmts() {
+  string x, y;
+  if (!isNonKeyId(token))
+	  processError("non-keyword identifier expected");
+  x = ids();
+  if (token != ":")
+	  processError("\":\" expected");
+  
+  nextToken();
+  // Check that the token is integer or boolean
+  if(token != "integer" && token != "boolean" )
+	  processError("illegal type follows \":\"");
+  y = token;
+  if (nextToken() != ";")
+	  processError("semicolon expected");
 
+  // Convert string types to storeType enum
+  storeTypes myType;
+  if (y == "integer")
+  	myType = INTEGER;
+  else
+  	myType = BOOLEAN;
+  insert(x, myType, VARIABLE, "", YES, 1);
+
+	nextToken();
+  if (token != "begin" && !isNonKeyId(token))
+	  processError("non-keyword identifier or \"begin\" expected");
+  if (isNonKeyId(token))
+	  varStmts();
 }
 // .. Stage 0, Production 8
 string ids() {
-
+  string temp,tempString;
+  if (!isNonKeyId(token))
+	  processError("non-keyword identifier expected");
+  tempString = token;
+  temp = token;
+  if (nextToken() == ",") {
+	  if (!isNonKeyId(nextToken()))
+	  	processError("non-keyword identifier expected");
+    tempString = temp + "," + ids();
+  }
+  return tempString;
 }
 
 void execStmts() {      // Stage 1, Production 2
@@ -116,7 +250,49 @@ string whichValue(string name) {    // Tells which value a name has
 
 }
 void code(string op, string operand1 = "", string operand2 = "") {
-
+  if(op == "program") {
+    emitPrologue(operand1);
+  } else if(op == "end") {
+    emitEpilogue();
+  } else if(op == "read") {
+    emitReadCode(operand1);
+  } else if(op == "write") {
+    emitWriteCode(operand1);
+  } else if(op == ":=") {
+    emitAssignCode(operand1, operand2);
+  } else if(op == "+") {
+    emitAdditionCode(operand1, operand2);
+  } else if(op == "-") {
+    emitSubtractionCode(operand1, operand2);
+  } else if(op == "*") {
+    emitMultiplicationCode(operand1, operand2);
+  } else if(op == "div") {
+    emitDivisionCode(operand1, operand2);
+  } else if(op == "mod") {
+    emitModuloCode(operand1, operand2);
+  } else if(op == "neg") {
+    emitNegationCode(operand1);
+  } else if(op == "not") {
+    emitNotCode(operand1);
+  } else if(op == "and") {
+    emitAndCode(operand1, operand2);
+  } else if(op == "or") {
+    emitOrCode(operand1, operand2);
+  } else if(op == "=") {
+    emitEqualityCode(operand1, operand2);
+  } else if(op == "<>") {
+    emitInequalityCode(operand1, operand2);
+  } else if(op == "<") {
+    emitLessThanCode(operand1, operand2);
+  } else if(op == "<=") {
+    emitLessThanOrEqualToCode(operand1, operand2);
+  } else if(op == ">") {
+    emitGreaterThanCode(operand1, operand2);
+  } else if(op == ">=") {
+    emitGreaterThanOrEqualToCode(operand1, operand2);
+  } else {
+    processError("compiler error since function code should not be called with illegal arguments");
+  }
 }
 void pushOperator(string op) {
 
@@ -210,20 +386,67 @@ string nextToken() {    // Returns the next token or END_OF_FILE marker
 
 // Other routines
 string genInternalName(storeTypes stype) {
-
+  string name;
+	static int numsI = 0, numsB = 0, numsU = 0; 
+	switch(stype) {
+		case PROG_NAME: {
+			name = "P0";
+			break;
+		}
+		case INTEGER: {
+			name = "I" + to_string(numsI);
+			++numsI;
+			break;
+		}
+		case BOOLEAN: {
+			name = "B" + to_string(numsB);
+			++numsB;
+			break;
+		}
+    case UNKNOWN: {
+      name = "U" + to_string(numsU);
+      ++numsU;
+      break;
+    }
+	}
+	return name;
 }
 void processError(string err) {
+  listingFile << "\nError: Line " << lineNo << ": " << err << endl;
+  ++errorCount;
+  createListingTrailer();
 
+  listingFile.close();
+  objectFile.close();
+  exit(EXIT_FAILURE);
 }
 void freeTemp() {
-
+  --currentTempNo;
+  if(currentTempNo < -1) {
+    processError("compiler error: currentTempNo should be greater than or equal to -1");
+  }
 }
 string getTemp() {
-
+  ++currentTempNo;
+  // Initialize a new temporary string
+  string temp;
+  temp = "T" + to_string(currentTempNo);
+  if(currentTempNo > maxTempNo) {
+    // Insert inside the symbol table and assign the internal name
+    insert(temp, UNKNOWN, VARIABLE, "1", NO, 1);
+    symbolTable[temp].setInternalName(temp);
+    ++maxTempNo;
+  }
+  return temp;
 }
 string getLabel() {
-
+  string internalName;
+  // Number of labels
+  static int numsL = 0;
+  internalName = "L" + to_string(numsL);
+  ++L;
+  return internalName;
 }
 bool isTemporary(string s) {        // Determines if s represents a temporary
-
+  return (s[0] == 'T');
 }
