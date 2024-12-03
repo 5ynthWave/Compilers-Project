@@ -220,22 +220,54 @@ void part() {
 
 // Helper functions for the Pascallite lexicon
 bool isKeyword(string s) {          // Determines if s is a keyword
-
+  return (s == "program" || s == "var" || s == "begin" || s == "end"
+    || s == "true" || s == "false" || s == "not" || s == "const"
+    || s == "integer" || s == "boolean" || s == "read" || s == "write"
+    || s == "and" || s == "or" || s == "div" || s == "mod");
 }
 bool isSpecialSymbol(char c) {      // Determines if c is a special symbol
-
+  return (c == ':' || c == ',' || c == ';'|| c == '=' || c == '+'
+    || c == '-' || c == '.' || c == '*' || c == '(' || c == ')'
+    || c == '>' || c == '<');
 }
 bool isNonKeyId(string s) {         // Determines if s is a non_key_id
-
+	if (isKeyword(s)) return false;
+	if (!isalpha(s[0]) || !islower(s[0])) return false;
+	if (isdigit(s[0]) || s[0] == '_' ) return false;
+	
+	for (size_t i = 1; i < s.length(); ++i) {
+    // '_' is the only allowed special character
+		if (isSpecialSymbol(s[i]) && s[i] != '_') return false;
+		// All lowercase
+		if (isalpha(s[i]) && !islower(s[i])) return false;
+    // '_' cannot proceed '_'
+		if (s[i] == '_' && s[i-1] == '_') return false;
+	}
+  // '_' cannot be the last character
+	if (s[s.length() - 1] == '_') return false;
+	return true;
 }
 bool isInteger(string s) {          // Determines if s is an integer
-
+	// Iterate through the token and check if each character is an integer
+  for (uint i = 0; i < s.length(); i++) {
+	  if (s[i] == ';') break;
+	  if (!isdigit(s[i])) return false;
+	}
+	return true;   
 }
 bool isBoolean(string s) {          // Determines if s is a boolean
-
+  return (s == "true" || s == "false");
 }
 bool isLiteral(string s) {          // Determines if s is a literal
-
+  if (isInteger(s) || isBoolean(s)) return true;
+  // If the variable starts with a +,- then check that the rest is an integer
+  if (s[0] == '+' || s[0] == '-') {
+	  for (uint i = 1; i < s.length(); i++) {
+		  if (!isdigit(s[i])) return false;
+	  }
+	  return true;
+  }
+  return false;
 }
 
 // Action routines
