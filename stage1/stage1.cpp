@@ -10,38 +10,38 @@
 using namespace std;
 
 // Constructor
-Compiler(char **argv) {
+Compiler::Compiler(char **argv) {
   sourceFile.open(argv[1]);
   listingFile.open(argv[2]);
   objectFile.open(argv[3]);
 }
 // Destructor
-~Compiler() {
+Compiler::~Compiler() {
   sourceFile.close();
   listingFile.close();
   objectFile.close();
 }
 
-void createListingHeader() {
+void Compiler::createListingHeader() {
   time_t now = time(0);
   listingFile << "STAGE 1: " << "Erik Zuniga & Roberto Lopez" << ctime(&now) << endl;
   listingFile << "LINE NO." << setw(10) << "SOURCE STATEMENT\n" << endl;
 }
-void parser() {
+void Compiler::parser() {
   nextChar();
   if(nextToken() != "program") {
     processError("keyword \"program\" expected");
   }
   prog();
 }
-void createListingTrailer() {
+void Compiler::createListingTrailer() {
   listingFile << "\nCOMPILATION TERMINATED" << setw(6) << "" << right
     << errorCount << (errorCount == 1 ? " ERROR" : " ERRORS") << " ENCOUNTERED" << endl;
 }
 
 // Methods implementing the grammar productions
 // Stage 0, Production 1 ..
-void prog() {
+void Compiler::prog() {
 	if (token != "program")
 		processError("keyword \"program\" expected");
 	progStmt();
@@ -55,7 +55,7 @@ void prog() {
 	if (token[0] != END_OF_FILE)
 		processError("no text may follow \"end\"");
 }
-void progStmt() {
+void Compiler::progStmt() {
 	string x;
 	if (token != "program")
 		processError("keyword \"program\" expected");
@@ -68,21 +68,21 @@ void progStmt() {
 	code("program", x);
 	insert(x, PROG_NAME, CONSTANT, x, NO, 0);
 }
-void consts() {
+void Compiler::consts() {
 	if (token != "const")
 		processError("keyword \"const\" expected");
 	if (!isNonKeyId(nextToken()))
 		processError("non-keyword identifier must follow \"const\"");
 	constStmts();
 }
-void vars() {
+void Compiler::vars() {
   if (token != "var")
 		processError("keyword \"var\" expected");
 	if (!isNonKeyId(nextToken()))
 		processError("non-keyword identifier must follow \"var\"");
 	varStmts();
 }
-void beginEndStmt() {
+void Compiler::beginEndStmt() {
   if (token != "begin")
     processError("keyword \"begin\" expected");
   // Call next token to validate it
@@ -96,7 +96,7 @@ void beginEndStmt() {
   nextToken();
   code("end", ".");
 }
-void constStmts() {
+void Compiler::constStmts() {
   string x,y;
   if(!isNonKeyId(token))
 	  processError("non-keyword identifier expected");
@@ -136,7 +136,7 @@ void constStmts() {
   if (isNonKeyId(x))
 	  constStmts();
 }
-void varStmts() {
+void Compiler::varStmts() {
   string x, y;
   if (!isNonKeyId(token))
 	  processError("non-keyword identifier expected");
@@ -167,7 +167,7 @@ void varStmts() {
 	  varStmts();
 }
 // .. Stage 0, Production 8
-string ids() {
+string Compiler::ids() {
   string temp,tempString;
   if (!isNonKeyId(token))
 	  processError("non-keyword identifier expected");
@@ -181,56 +181,56 @@ string ids() {
   return tempString;
 }
 
-void execStmts() {      // Stage 1, Production 2
+void Compiler::execStmts() {      // Stage 1, Production 2
 
 }
-void execStmt() {       // Stage 1, Production 3
+void Compiler::execStmt() {       // Stage 1, Production 3
 
 }
-void assignStmt() {     // Stage 1, Production 4
+void Compiler::assignStmt() {     // Stage 1, Production 4
 
 }
-void readStmt() {       // Stage 1, Production 5
+void Compiler::readStmt() {       // Stage 1, Production 5
 
 }
-void writeStmt() {      // Stage 1, Production 7
+void Compiler::writeStmt() {      // Stage 1, Production 7
 
 }
-void express() {        // Stage 1, Production 9
+void Compiler::express() {        // Stage 1, Production 9
 
 }
-void expresses() {      // Stage 1, Production 10
+void Compiler::expresses() {      // Stage 1, Production 10
 
 }
-void term() {           // Stage 1, Production 11
+void Compiler::term() {           // Stage 1, Production 11
 
 }
-void terms() {          // Stage 1, Production 12
+void Compiler::terms() {          // Stage 1, Production 12
 
 }
-void factor() {         // Stage 1, Production 13
+void Compiler::factor() {         // Stage 1, Production 13
 
 }
-void factors() {        // Stage 1, Production 15
+void Compiler::factors() {        // Stage 1, Production 15
 
 }
-void part() {
+void Compiler::part() {
 
 }
 
 // Helper functions for the Pascallite lexicon
-bool isKeyword(string s) {          // Determines if s is a keyword
+bool Compiler::isKeyword(string s) {          // Determines if s is a keyword
   return (s == "program" || s == "var" || s == "begin" || s == "end"
     || s == "true" || s == "false" || s == "not" || s == "const"
     || s == "integer" || s == "boolean" || s == "read" || s == "write"
     || s == "and" || s == "or" || s == "div" || s == "mod");
 }
-bool isSpecialSymbol(char c) {      // Determines if c is a special symbol
+bool Compiler::isSpecialSymbol(char c) {      // Determines if c is a special symbol
   return (c == ':' || c == ',' || c == ';'|| c == '=' || c == '+'
     || c == '-' || c == '.' || c == '*' || c == '(' || c == ')'
     || c == '>' || c == '<');
 }
-bool isNonKeyId(string s) {         // Determines if s is a non_key_id
+bool Compiler::isNonKeyId(string s) {         // Determines if s is a non_key_id
 	if (isKeyword(s)) return false;
 	if (!isalpha(s[0]) || !islower(s[0])) return false;
 	if (isdigit(s[0]) || s[0] == '_' ) return false;
@@ -247,7 +247,7 @@ bool isNonKeyId(string s) {         // Determines if s is a non_key_id
 	if (s[s.length() - 1] == '_') return false;
 	return true;
 }
-bool isInteger(string s) {          // Determines if s is an integer
+bool Compiler::isInteger(string s) {          // Determines if s is an integer
 	// Iterate through the token and check if each character is an integer
   for (uint i = 0; i < s.length(); i++) {
 	  if (s[i] == ';') break;
@@ -255,10 +255,10 @@ bool isInteger(string s) {          // Determines if s is an integer
 	}
 	return true;   
 }
-bool isBoolean(string s) {          // Determines if s is a boolean
+bool Compiler::isBoolean(string s) {          // Determines if s is a boolean
   return (s == "true" || s == "false");
 }
-bool isLiteral(string s) {          // Determines if s is a literal
+bool Compiler::isLiteral(string s) {          // Determines if s is a literal
   if (isInteger(s) || isBoolean(s)) return true;
   // If the variable starts with a +,- then check that the rest is an integer
   if (s[0] == '+' || s[0] == '-') {
@@ -271,17 +271,17 @@ bool isLiteral(string s) {          // Determines if s is a literal
 }
 
 // Action routines
-void insert(string externalName, storeTypes inType, modes inMode,
+void Compiler::insert(string externalName, storeTypes inType, modes inMode,
             string inValue, allocation inAlloc, int inUnits) {
 
 }
-storeTypes whichType(string name) { // Tells which data type a name has
+storeTypes Compiler::whichType(string name) { // Tells which data type a name has
 
 }
-string whichValue(string name) {    // Tells which value a name has
+string Compiler::whichValue(string name) {    // Tells which value a name has
 
 }
-void code(string op, string operand1 = "", string operand2 = "") {
+void Compiler::code(string op, string operand1 = "", string operand2 = "") {
   if(op == "program") {
     emitPrologue(operand1);
   } else if(op == "end") {
@@ -326,98 +326,98 @@ void code(string op, string operand1 = "", string operand2 = "") {
     processError("compiler error since function code should not be called with illegal arguments");
   }
 }
-void pushOperator(string op) {
+void Compiler::pushOperator(string op) {
 
 }
-string popOperator() {
+string Compiler::popOperator() {
 
 }
-void pushOperand(string operand) {
+void Compiler::pushOperand(string operand) {
 
 }
-string popOperand() {
+string Compiler::popOperand() {
 
 }
 
 // Emit Functions
-void emit(string label = "", string instruction = "", string operands = "",
+void Compiler::emit(string label = "", string instruction = "", string operands = "",
           string comment = "") {
 
 }
-void emitPrologue(string progName, string = "") {
+void Compiler::emitPrologue(string progName, string = "") {
 
 }
-void emitEpilogue(string = "", string = "") {
+void Compiler::emitEpilogue(string = "", string = "") {
 
 }
-void emitStorage() {
+void Compiler::emitStorage() {
 
 }
-void emitReadCode(string operand, string = "") {
+void Compiler::emitReadCode(string operand, string = "") {
 
 }
-void emitWriteCode(string operand, string = "") {
+void Compiler::emitWriteCode(string operand, string = "") {
 
 }
-void emitAssignCode(string operand1, string operand2) {               // op2 = op1
+void Compiler::emitAssignCode(string operand1, string operand2) {               // op2 = op1
 
 }
-void emitAdditionCode(string operand1, string operand2) {             // op2 +  op1
+void Compiler::emitAdditionCode(string operand1, string operand2) {             // op2 +  op1
 
 }
-void emitSubtractionCode(string operand1, string operand2) {          // op2 -  op1
+void Compiler::emitSubtractionCode(string operand1, string operand2) {          // op2 -  op1
 
 }
-void emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
+void Compiler::emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
 
 }
-void emitDivisionCode(string operand1, string operand2) {             // op2 /  op1
+void Compiler::emitDivisionCode(string operand1, string operand2) {             // op2 /  op1
 
 }
-void emitModuloCode(string operand1, string operand2) {               // op2 %  op1
+void Compiler::emitModuloCode(string operand1, string operand2) {               // op2 %  op1
 
 }
-void emitNegationCode(string operand1, string = "") {                 // -op1
+void Compiler::emitNegationCode(string operand1, string = "") {                 // -op1
 
 }
-void emitNotCode(string operand1, string = "") {                      // !op1
+void Compiler::emitNotCode(string operand1, string = "") {                      // !op1
 
 }
-void emitAndCode(string operand1, string operand2) {                  // op2 && op1
+void Compiler::emitAndCode(string operand1, string operand2) {                  // op2 && op1
 
 }
-void emitOrCode(string operand1, string operand2) {                   // op2 || op1
+void Compiler::emitOrCode(string operand1, string operand2) {                   // op2 || op1
 
 }
-void emitEqualityCode(string operand1, string operand2) {             // op2 == op1
+void Compiler::emitEqualityCode(string operand1, string operand2) {             // op2 == op1
 
 }
-void emitInequalityCode(string operand1, string operand2) {           // op2 != op1
+void Compiler::emitInequalityCode(string operand1, string operand2) {           // op2 != op1
 
 }
-void emitLessThanCode(string operand1, string operand2) {             // op2 <  op1
+void Compiler::emitLessThanCode(string operand1, string operand2) {             // op2 <  op1
 
 }
-void emitLessThanOrEqualToCode(string operand1, string operand2) {    // op2 <= op1
+void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) {    // op2 <= op1
 
 }
-void emitGreaterThanCode(string operand1, string operand2) {          // op2 >  op1
+void Compiler::emitGreaterThanCode(string operand1, string operand2) {          // op2 >  op1
 
 }
-void emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
+void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
 
 }
 
 // Lexical routines
-char nextChar() {       // Returns the next character or END_OF_FILE marker
+char Compiler::nextChar() {       // Returns the next character or END_OF_FILE marker
 
 }
-string nextToken() {    // Returns the next token or END_OF_FILE marker
+string Compiler::nextToken() {    // Returns the next token or END_OF_FILE marker
 
 }
 
 // Other routines
-string genInternalName(storeTypes stype) {
+string Compiler::genInternalName(storeTypes stype) {
   string name;
 	static int numsI = 0, numsB = 0, numsU = 0; 
 	switch(stype) {
@@ -443,7 +443,7 @@ string genInternalName(storeTypes stype) {
 	}
 	return name;
 }
-void processError(string err) {
+void Compiler::processError(string err) {
   listingFile << "\nError: Line " << lineNo << ": " << err << endl;
   ++errorCount;
   createListingTrailer();
@@ -452,13 +452,13 @@ void processError(string err) {
   objectFile.close();
   exit(EXIT_FAILURE);
 }
-void freeTemp() {
+void Compiler::freeTemp() {
   --currentTempNo;
   if(currentTempNo < -1) {
     processError("compiler error: currentTempNo should be greater than or equal to -1");
   }
 }
-string getTemp() {
+string Compiler::getTemp() {
   ++currentTempNo;
   // Initialize a new temporary string
   string temp;
@@ -471,7 +471,7 @@ string getTemp() {
   }
   return temp;
 }
-string getLabel() {
+string Compiler::getLabel() {
   string internalName;
   // Number of labels
   static int numsL = 0;
@@ -479,6 +479,6 @@ string getLabel() {
   ++L;
   return internalName;
 }
-bool isTemporary(string s) {        // Determines if s represents a temporary
+bool Compiler::isTemporary(string s) {        // Determines if s represents a temporary
   return (s[0] == 'T');
 }
