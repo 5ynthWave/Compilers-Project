@@ -239,6 +239,7 @@ bool Compiler::isNonKeyId(string s) const {
 
 // Determines if s is an integer -> NUM | NUMS
 bool Compiler::isInteger(string s) const {
+bool Compiler::isInteger(string s) const {
   // Iterate through the token and check if each character is an integer
 	for (uint i = 0; i < s.length(); i++) {
 	  if (s[i] == ';') break;
@@ -248,6 +249,8 @@ bool Compiler::isInteger(string s) const {
 }
 
 // Determines if s is a boolean
+bool Compiler::isBoolean(string s) const {
+  return (s == "true" || s == "false");
 bool Compiler::isBoolean(string s) const {
   return (s == "true" || s == "false");
 }
