@@ -332,17 +332,31 @@ void Compiler::code(string op, string operand1, string operand2) {
     processError("compiler error since function code should not be called with illegal arguments");
   }
 }
-void Compiler::pushOperator(string op) {
 
+// Push/Pop helper functions
+void Compiler::pushOperator(string op) {
+  operatorStk.push(op);
 }
 string Compiler::popOperator() {
-
+  if(!operatorStk.empty()) {
+    string op = operatorStk.top();
+    operatorStk.pop();
+  } else { processError("operator stack underflow"); }
+  return op;
 }
-void Compiler::pushOperand(string operand) {
-
+void Compiler::pushOperand(string op) {
+  // Push name onto operandStk
+  // If name is a literal, also create a symbol table entry for it
+  if(symbolTable.count(op) == 0 && (isInteger(op) || isBoolean(op)))
+    insert(op, whichType(op), CONSTANT, whichValue(op), YES, 1);
+  operandStk.push(op);
 }
 string Compiler::popOperand() {
-
+  if(!operandStk.empty()) {
+    string op = operandStk.top();
+    operandStk.pop();
+  } else { processError("operand stack underflow"); }
+  return op;
 }
 
 // Emit Functions
