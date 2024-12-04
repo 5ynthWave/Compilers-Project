@@ -187,39 +187,148 @@ string Compiler::ids() {
   return tempString;
 }
 
+// Stage 1 Productions
 void Compiler::execStmts() {      // Stage 1, Production 2
-
+  // -> EXEC_STMT | EXEC_STMTS
+  // -> ε
+  if(isNonKeyId(token) || token == "read" || token == "write" || token == ";") {
+    // The token will be at the end of the last execStmt, so
+    execStmt();
+    // advance token and
+    nextToken();
+    // then recurse
+    execStmts();
+  }
+  else if(token == "end") { /*Do nothing*/ }
+  else
+    processError("\";\", \"begin\", \"read\", \"write\", \"end\" expected");
 }
+
 void Compiler::execStmt() {       // Stage 1, Production 3
-
+  // If the token is a non-keyword identifier, then it is an assignment statement
+  if(isNonKeyId(token))
+    assignStmt();
+  // If the token is "read", then it is a read statement
+  else if(token == "read")
+    readStmt();
+  // If the token is "write", then it is a write statement
+  else if(token == "write")
+    writeStmt();
+  else
+    processError("non-keyword identifier, \"read\", or \"write\" expected");
 }
+
 void Compiler::assignStmt() {     // Stage 1, Production 4
+  // -> NON_KEY_ID ':=' EXPRESS ';'
+  // Token must be a non-keyword identifier and defined
+  if(!isNonKeyId(token))
+    processError("non-keyword identifier expected");
+  if(symbolTable.count(token) == 0)
+    processError("reference to undefined constant");
+  
+  string op1, op2;
+  pushOperand(token);
+  nextToken();
 
+  // Token must be ":="
+  if(token != ":=")
+    processError("\":=\" expected; found " + token);
+  // Push the operator onto the operator stack
+  else
+    pushOperator(token);
+  nextToken();
+
+  // Validate that token is an expression
+  if(!isBoolean(token) && !isInteger(token) && !isNonKeyId(token)
+    && token != "(" && token != "+" && token != '-' && token != "not" && token != ";")
+    processError(one of \"*\", \"and\", \"div\", \"mod\", \")\", \"+\", \"-\", \";\", \"<\", \"<=\", \"<>\", \"=\", \">\", \">=\", or \"or\" expected")
+  // Call the express() production
+  else
+    express();
+
+  // Pop the operator and operands from the stacks
+  op2 = popOperand();
+  op1 = popOperand();
+  code(popOperator(), op2, op1);
 }
+
 void Compiler::readStmt() {       // Stage 1, Production 5
+  // Read list
+  string list;
+  // List item
+  string listItem;
+  // and the counter
+  uint i;
 
+  // Double check for a "read" token
+  if (token != "read")
+    processError("keyword \"read\" expected");
+  nextToken();
+
+  // Make sure the next token is a "("
+  if (token != "(")
+    processError("\"(\" expected");
+  // otherwise it's a ")"
+  else {
+    nextToken();
+    // Grab non-key-ids to advance token
+    list = ids();
+
+    // Loop through the characters of the list
+    for (i = 0; i < list.length(); ++i) {
+      if (list[ i ] == ',') {
+        // If we have a ',' then code the current list item
+        code("read", listItem);
+        // Reset list item for next characters
+        listItem = "";
+      }
+      // If we don't have a ',' then add characters to the list item
+      else
+        listItem += list[i];
+    }
+
+    // Code the current listItem
+    code("read", listItem);
+
+    // Look for a ")" prior to ";"
+    if (token != ")")
+      processError("\",\" or \")\" expected after non-keyword identifier");
+
+    // Next token must be ";" to end the read statement
+    nextToken();
+    if (token != ";")
+      processError("\";\" expected");
+  }
 }
+
 void Compiler::writeStmt() {      // Stage 1, Production 7
 
 }
+
 void Compiler::express() {        // Stage 1, Production 9
 
 }
+
 void Compiler::expresses() {      // Stage 1, Production 10
 
 }
+
 void Compiler::term() {           // Stage 1, Production 11
 
 }
+
 void Compiler::terms() {          // Stage 1, Production 12
 
 }
+
 void Compiler::factor() {         // Stage 1, Production 13
 
 }
+
 void Compiler::factors() {        // Stage 1, Production 15
 
 }
+
 void Compiler::part() {
 
 }
@@ -474,9 +583,8 @@ void Compiler::processError(string err) {
 }
 void Compiler::freeTemp() {
   --currentTempNo;
-  if(currentTempNo < -1) {
+  if(currentTempNo < -1)
     processError("compiler error: currentTempNo should be greater than or equal to -1");
-  }
 }
 string Compiler::getTemp() {
   ++currentTempNo;
@@ -485,8 +593,7 @@ string Compiler::getTemp() {
   temp = "T" + to_string(currentTempNo);
   if(currentTempNo > maxTempNo) {
     // Insert inside the symbol table and assign the internal name
-    insert(temp, UNKNOWN, VARIABLE, "1", NO, 1);
-    symbolTable[temp].setInternalName(temp);
+    insert(temp, UNKNOWN, VARIABLE, "", NO, 1);
     ++maxTempNo;
   }
   return temp;
