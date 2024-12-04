@@ -9,11 +9,13 @@
 #include <ctime>
 using namespace std;
 
- /* 'not' '-'(unary) '+'(unary)     ↓
-    '*' 'div' 'mod' 'and'           Decreasing
-    '+'(binary) '-'(binary) 'or'    order of
-    '=' '<' '>' '<=' '>=' '<>'      Precedence
-    ':='                            ↓          */
+/*
+  - 'not' '-'(unary) '+'(unary)     ↓
+  - '*' 'div' 'mod' 'and'           Decreasing
+  - '+'(binary) '-'(binary) 'or'    order of
+  - '=' '<' '>' '<=' '>=' '<>'      Precedence
+  - ':='                            ↓
+*/
 
 // Constructor
 Compiler::Compiler(char **argv) {
@@ -240,8 +242,8 @@ void Compiler::assignStmt() {     // Stage 1, Production 4
 
   // Validate that token is an expression
   if(!isBoolean(token) && !isInteger(token) && !isNonKeyId(token)
-    && token != "(" && token != "+" && token != '-' && token != "not" && token != ";")
-    processError(one of \"*\", \"and\", \"div\", \"mod\", \")\", \"+\", \"-\", \";\", \"<\", \"<=\", \"<>\", \"=\", \">\", \">=\", or \"or\" expected")
+    && token != "(" && token != "+" && token != "-" && token != "not" && token != ";")
+    processError("one of \"*\", \"and\", \"div\", \"mod\", \")\", \"+\", \"-\", \";\", \"<\", \"<=\", \"<>\", \"=\", \">\", \">=\", or \"or\" expected");
   // Call the express() production
   else
     express();
@@ -269,36 +271,31 @@ void Compiler::readStmt() {       // Stage 1, Production 5
   if (token != "(")
     processError("\"(\" expected");
   // otherwise it's a ")"
-  else {
-    nextToken();
-    // Grab non-key-ids and advance token
-    list = ids();
+  nextToken();
+  // Grab non-key-ids and advance token
+  list = ids();
 
-    // Loop through the characters of the list
-    for (i = 0; i < list.length(); ++i) {
-      if (list[ i ] == ',') {
-        // If we have a ',' then code the current list item
-        code("read", listItem);
-        // Reset list item for next characters
-        listItem = "";
-      }
-      // If we don't have a ',' then add characters to the list item
-      else
-        listItem += list[i];
+  // Loop through the characters of the list
+  for (i = 0; i < list.length(); ++i) {
+    if (list[ i ] == ',') {
+      // If we have a ',' then code the current list item
+      code("read", listItem);
+      // Reset list item for next characters
+      listItem = "";
     }
-
-    // Code the current listItem
-    code("read", listItem);
-
-    // Look for a ")" prior to ";"
-    if (token != ")")
-      processError("\",\" or \")\" expected after non-keyword identifier");
-
-    // Next token must be ";" to end the read statement
-    nextToken();
-    if (token != ";")
-      processError("\";\" expected");
+    // If we don't have a ',' then add characters to the list item
+    else
+      listItem += list[i];
   }
+  // Code the current listItem
+  code("read", listItem);
+  // Look for a ")" prior to ";"
+  if (token != ")")
+    processError("\",\" or \")\" expected after non-keyword identifier");
+  // Next token must be ";" to end the read statement
+  nextToken();
+  if (token != ";")
+    processError("\";\" expected");
 }
 
 void Compiler::writeStmt() {      // Stage 1, Production 7
@@ -347,7 +344,13 @@ void Compiler::writeStmt() {      // Stage 1, Production 7
 }
 
 void Compiler::express() {        // Stage 1, Production 9
-
+  if (!isInteger(token) && !isNonKeyId(token) && !isBoolean(token) && token != "(" 
+    && token != "not" && token != "+" && token != "-")
+    processError("\"not\", \"true\", \"false\", \"(\", \"+\", \"-\", non-keyword identifier, or integer expected");
+  term();
+  if (token == "=" || token == "<" || token == ">" 
+    || token == ">=" || token == "<=" || token == "<>")
+    expresses();
 }
 
 void Compiler::expresses() {      // Stage 1, Production 10
@@ -438,11 +441,41 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
 }
 
 storeTypes Compiler::whichType(string name) { // Tells which data type a name has
-
+	storeTypes type;
+  // Initially check if the name is a literal
+	if (isLiteral(name)) {
+    // If it is a proper literal, then check if it's a boolean,
+		if (isBoolean(name))
+			type = BOOLEAN;
+    // otherwise it is an integer
+		else
+			type = INTEGER;
+	} else { // Name is an identifier and hopefully a constant
+    // If name is in the symbolTable, then grab its data-type
+	  if(symbolTable.count(name) > 0)
+	  	type = symbolTable.find(name)->second.getDataType();
+    // Otherwise, throw a complaint
+	  else {
+	  	if(isNonKeyId(name))
+	  		processError("reference to undefined constant");
+	  	else
+	  		processError("non-keyword identifier or literal expected");
+	  }
+	}
+	return type;
 }
 
 string Compiler::whichValue(string name) {    // Tells which value a name has
-
+	string value;
+	if(isLiteral(name))
+		value = name;
+	else { // Name is an identifier and hopefully a constant
+		if(symbolTable.find(name) != symbolTable.end())
+			value = symbolTable.at(name).getValue();
+		else
+			processError("reference to undefined constant");
+	}
+	return value;
 }
 
 void Compiler::code(string op, string operand1, string operand2) {
@@ -497,8 +530,9 @@ void Compiler::pushOperator(string op) {
 }
 
 string Compiler::popOperator() {
+  string op;
   if(!operatorStk.empty()) {
-    string op = operatorStk.top();
+    op = operatorStk.top();
     operatorStk.pop();
   } else { processError("operator stack underflow"); }
   return op;
@@ -513,8 +547,9 @@ void Compiler::pushOperand(string op) {
 }
 
 string Compiler::popOperand() {
+  string op;
   if(!operandStk.empty()) {
-    string op = operandStk.top();
+    op = operandStk.top();
     operandStk.pop();
   } else { processError("operand stack underflow"); }
   return op;
