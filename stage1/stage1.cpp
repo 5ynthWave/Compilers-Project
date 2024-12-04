@@ -340,11 +340,13 @@ bool Compiler::isKeyword(string s) const {          // Determines if s is a keyw
     || s == "integer" || s == "boolean" || s == "read" || s == "write"
     || s == "and" || s == "or" || s == "div" || s == "mod");
 }
+
 bool Compiler::isSpecialSymbol(char c) const {      // Determines if c is a special symbol
   return (c == ':' || c == ',' || c == ';'|| c == '=' || c == '+'
     || c == '-' || c == '.' || c == '*' || c == '(' || c == ')'
     || c == '>' || c == '<');
 }
+
 bool Compiler::isNonKeyId(string s) const {         // Determines if s is a non_key_id
 	if (isKeyword(s)) return false;
 	if (!isalpha(s[0]) || !islower(s[0])) return false;
@@ -362,6 +364,7 @@ bool Compiler::isNonKeyId(string s) const {         // Determines if s is a non_
 	if (s[s.length() - 1] == '_') return false;
 	return true;
 }
+
 bool Compiler::isInteger(string s) const {          // Determines if s is an integer
 	// Iterate through the token and check if each character is an integer
   for (uint i = 0; i < s.length(); i++) {
@@ -370,9 +373,11 @@ bool Compiler::isInteger(string s) const {          // Determines if s is an int
 	}
 	return true;   
 }
+
 bool Compiler::isBoolean(string s) const {          // Determines if s is a boolean
   return (s == "true" || s == "false");
 }
+
 bool Compiler::isLiteral(string s) const {          // Determines if s is a literal
   if (isInteger(s) || isBoolean(s)) return true;
   // If the variable starts with a +,- then check that the rest is an integer
@@ -390,12 +395,15 @@ void Compiler::insert(string externalName, storeTypes inType, modes inMode,
             string inValue, allocation inAlloc, int inUnits) {
 
 }
+
 storeTypes Compiler::whichType(string name) { // Tells which data type a name has
 
 }
+
 string Compiler::whichValue(string name) {    // Tells which value a name has
 
 }
+
 void Compiler::code(string op, string operand1, string operand2) {
   if(op == "program") {
     emitPrologue(operand1);
@@ -446,6 +454,7 @@ void Compiler::code(string op, string operand1, string operand2) {
 void Compiler::pushOperator(string op) {
   operatorStk.push(op);
 }
+
 string Compiler::popOperator() {
   if(!operatorStk.empty()) {
     string op = operatorStk.top();
@@ -453,6 +462,7 @@ string Compiler::popOperator() {
   } else { processError("operator stack underflow"); }
   return op;
 }
+
 void Compiler::pushOperand(string op) {
   // Push name onto operandStk
   // If name is a literal, also create a symbol table entry for it
@@ -460,6 +470,7 @@ void Compiler::pushOperand(string op) {
     insert(op, whichType(op), CONSTANT, whichValue(op), YES, 1);
   operandStk.push(op);
 }
+
 string Compiler::popOperand() {
   if(!operandStk.empty()) {
     string op = operandStk.top();
@@ -473,66 +484,87 @@ void Compiler::emit(string label, string instruction, string operands,
           string comment) {
 
 }
+
 void Compiler::emitPrologue(string progName, string operand2) {
 
 }
+
 void Compiler::emitEpilogue(string operand1, string operand2) {
 
 }
+
 void Compiler::emitStorage() {
 
 }
+
 void Compiler::emitReadCode(string operand, string operand2) {
 
 }
+
 void Compiler::emitWriteCode(string operand, string operand2) {
 
 }
+
 void Compiler::emitAssignCode(string operand1, string operand2) {               // op2 = op1
 
 }
+
 void Compiler::emitAdditionCode(string operand1, string operand2) {             // op2 +  op1
 
 }
+
 void Compiler::emitSubtractionCode(string operand1, string operand2) {          // op2 -  op1
 
 }
+
 void Compiler::emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
 
 }
+
 void Compiler::emitDivisionCode(string operand1, string operand2) {             // op2 /  op1
 
 }
+
 void Compiler::emitModuloCode(string operand1, string operand2) {               // op2 %  op1
 
 }
+
 void Compiler::emitNegationCode(string operand1, string operand2) {             // -op1
 
 }
+
 void Compiler::emitNotCode(string operand1, string operand2) {                  // !op1
 
 }
+
 void Compiler::emitAndCode(string operand1, string operand2) {                  // op2 && op1
 
 }
+
 void Compiler::emitOrCode(string operand1, string operand2) {                   // op2 || op1
 
 }
+
 void Compiler::emitEqualityCode(string operand1, string operand2) {             // op2 == op1
 
 }
+
 void Compiler::emitInequalityCode(string operand1, string operand2) {           // op2 != op1
 
 }
+
 void Compiler::emitLessThanCode(string operand1, string operand2) {             // op2 <  op1
 
 }
+
 void Compiler::emitLessThanOrEqualToCode(string operand1, string operand2) {    // op2 <= op1
 
 }
+
 void Compiler::emitGreaterThanCode(string operand1, string operand2) {          // op2 >  op1
 
 }
+
 void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { // op2 >= op1
 
 }
@@ -541,6 +573,7 @@ void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { 
 char Compiler::nextChar() {       // Returns the next character or END_OF_FILE marker
 
 }
+
 string Compiler::nextToken() {    // Returns the next token or END_OF_FILE marker
 
 }
@@ -572,6 +605,7 @@ string Compiler::genInternalName(storeTypes stype) const {
 	}
 	return name;
 }
+
 void Compiler::processError(string err) {
   listingFile << "\nError: Line " << lineNo << ": " << err << endl;
   ++errorCount;
@@ -581,11 +615,13 @@ void Compiler::processError(string err) {
   objectFile.close();
   exit(EXIT_FAILURE);
 }
+
 void Compiler::freeTemp() {
   --currentTempNo;
   if(currentTempNo < -1)
     processError("compiler error: currentTempNo should be greater than or equal to -1");
 }
+
 string Compiler::getTemp() {
   ++currentTempNo;
   // Initialize a new temporary string
@@ -598,6 +634,7 @@ string Compiler::getTemp() {
   }
   return temp;
 }
+
 string Compiler::getLabel() {
   string internalName;
   // Number of labels
