@@ -271,7 +271,7 @@ void Compiler::readStmt() {       // Stage 1, Production 5
   // otherwise it's a ")"
   else {
     nextToken();
-    // Grab non-key-ids to advance token
+    // Grab non-key-ids and advance token
     list = ids();
 
     // Loop through the characters of the list
@@ -302,7 +302,48 @@ void Compiler::readStmt() {       // Stage 1, Production 5
 }
 
 void Compiler::writeStmt() {      // Stage 1, Production 7
+  // Read list
+  string list;
+  // List item
+  string listItem;
+  // and the counter
+  uint i;
 
+  // Double-check for "write" token
+  if (token != "write")
+    processError("keyword \"write\" expected");
+  nextToken();
+
+  // Make sure the next token is a "("
+  if (token != "(")
+    processError("\"(\" expected");
+  nextToken();
+  // Grab non-key-ids and advance token
+  list = ids();
+
+  // Loop through the characters of the list
+  for (i = 0; i < list.length(); ++i) {
+    if (list[i] == ',') {
+      // If we have a ',' then code current list item
+      code("write", listItem);
+      // and reset list item for next characters
+      listItem = "";
+    }
+    // If we don't have a ',' then add characters to the list item
+    else
+      listItem += list[i];
+  }
+
+  // Code the current list item
+  code("write", listItem);
+  // Look for a ")" prior to ";"
+  if (token != ")")
+    processError("',' or ')' expected after non-keyword identifier");
+
+  // Advance token and check for ";" to end write statement
+  nextToken();
+  if (token != ";")
+    processError("';' expected");
 }
 
 void Compiler::express() {        // Stage 1, Production 9
@@ -571,11 +612,77 @@ void Compiler::emitGreaterThanOrEqualToCode(string operand1, string operand2) { 
 
 // Lexical routines
 char Compiler::nextChar() {       // Returns the next character or END_OF_FILE marker
-
+	sourceFile.get(ch);
+	static char prevChar = '\n';
+	
+	if (sourceFile.eof())
+		ch = END_OF_FILE;
+	else {
+		if (prevChar == '\n') {
+			++lineNo;
+			listingFile << setw(5) << lineNo << '|';
+		}
+		listingFile << ch;
+	}
+	prevChar = ch;
+	return ch;
 }
 
 string Compiler::nextToken() {    // Returns the next token or END_OF_FILE marker
+ 	token = "";	
+	while(token == "") {
+		if(ch == '{') { 
+			while (nextChar() != END_OF_FILE && ch != '}') {}
+			if (ch == END_OF_FILE)
+				processError("unexpected end of file: '}' expected");
+			// A '}' was found
+      else
+				nextChar();
+		}
+		else if (ch == '}')
+			processError("'}' cannot begin token");
+		else if (isspace(ch))
+			nextChar();
+		else if (isSpecialSymbol(ch)) {
+			token = ch;
+			nextChar();
+      if(token == ":" && ch == '=') {
+        token += ch;
+        nextChar();
+      }
+      else if(token == "<" && (ch == '>' || ch == '=')) {
+        token += ch;
+        nextChar();
+      }
+      else if(token == ">" && ch == '=') {
+        token += ch;
+        nextChar();
+      }
+		}
 
+		else if (islower(ch)) {
+			token = ch;
+			while((nextChar() == '_' || isalpha(ch) || isdigit(ch)) && ch != END_OF_FILE)
+				token += ch;
+			if (ch == END_OF_FILE)
+				processError("unexpected end of file");
+		}
+
+		else if (isdigit(ch)) {
+			token = ch;
+			while (isdigit(nextChar()) && ch != END_OF_FILE)
+				token += ch;
+			if (ch == END_OF_FILE)
+				processError("unexpected end of file");
+		}
+
+		else if (ch == END_OF_FILE)
+			token = ch;
+		else
+			processError("illegal symbol");
+	}	
+	token = token.substr(0,15);
+	return token;
 }
 
 // Other routines
@@ -643,6 +750,7 @@ string Compiler::getLabel() {
   ++numsL;
   return internalName;
 }
+
 bool Compiler::isTemporary(string s) const {    // Determines if s represents a temporary
   return (s[0] == 'T');
 }
