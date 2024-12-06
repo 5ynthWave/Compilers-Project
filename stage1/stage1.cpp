@@ -355,25 +355,148 @@ void Compiler::express() {        // Stage 1, Production 9
 
 void Compiler::expresses() {      // Stage 1, Production 10
 
+  if (token == "<>" || token == "=" || token == "<=" || 
+        token == ">=" || token == "<" || token == ">") {
+
+        //match TERM
+        term(); //parse the TERM 
+
+        //recursive call to EXPRESSES
+        expresses();
+    }
+    else if (token == ")" || token == ";") {
+        //do nothing (ε production)
+        return;
+    }
+    else {
+        //error handling for unexpected tokens
+        processError("\")\" or \";\" expected after expression");
+    }
+
+
 }
 
 void Compiler::term() {           // Stage 1, Production 11
 
+  if (isInteger(token) || isNonKeyId(token) || isBoolean(token) || 
+        token == "(" || token == "not" || token == "+" || token == "-") {
+        //match factor
+        factor(); //parse the FACTOR
+
+        //mtch TERMS
+        terms(); //parse the continuation (TERMS)
+    } else {
+        //error handling for unexpected tokens
+        processError("\"not\", \"true\", \"false\", \"(\", \"+\", \"-\", non-keyword identifier, or integer expected");
+    }
 }
 
 void Compiler::terms() {          // Stage 1, Production 12
+
+  if (token == "+" || token == "-" || token == "or") {
+
+        //match factor
+        factor(); //parse the FACTOR
+
+        //recursive call to TERMS
+        terms();
+    }
+    else if (token == "<>" || token == "=" || token == "<=" || token == ">=" || 
+             token == "<" || token == ">" || token == ")" || token == ";") {
+        //do nothing (ε production)
+        return;
+    }
+    else {
+        //error handling for unexpected tokens
+        processError("\"+\", \"-\", \"or\", \"<>\", \"=\", \"<=\", \">=\", \"<\", \">\", \")\", or \";\" expected");
+    }
 
 }
 
 void Compiler::factor() {         // Stage 1, Production 13
 
+  if (isInteger(token) || isNonKeyId(token) || isBoolean(token) || 
+        token == "(" || token == "not" || token == "+" || token == "-") {
+        //match PART
+        part(); //parse the PART
+
+        //match FACTORS
+        factors(); //parse the continuation (FACTORS)
+    } else {
+        //error handling for unexpected tokens
+        processError("\"not\", \"true\", \"false\", \"(\", \"+\", \"-\", non-keyword identifier, or integer expected");
+    }
+
 }
 
 void Compiler::factors() {        // Stage 1, Production 15
 
+
+   if (token == "*" || token == "div" || token == "mod" || token == "and") {
+
+        //match PART
+        part(); // Parse the PART after the operator
+
+        //recursive call to FACTORS
+        factors();
+    }
+    else if (token == "<>" || token == "=" || token == "<=" || token == ">=" || 
+             token == "<" || token == ">" || token == ")" || token == ";" || 
+             token == "-" || token == "+" || token == "or") {
+        //do nothing (ε production)
+        return;
+    }
+    else {
+        //error handling for unexpected tokens
+        processError("\"*\", \"div\", \"mod\", \"and\", \"<>\", \"=\", \"<=\", \">=\", \"<\", \">\", \")\", \";\", \"-\", \"+\", or \"or\" expected");
+    }
 }
 
 void Compiler::part() {
+
+  if (token == "not") {
+        //match 'not'
+        nextToken(); //consume 'not'
+        part();      //recursively call part()
+    } 
+    else if (token == "+" || token == "-") {
+
+        //match '+' or '-'
+        nextToken(); //consume '+' or '-'
+
+        //match '(' EXPRESS ')' | INTEGER | NON_KEY_ID
+        if (token == "(") {
+            nextToken(); //consume '('
+            express();   //parse EXPRESS
+            if (token == ")") {
+                nextToken(); //consume ')'
+            } else {
+                processError("\")\" expected after expression");
+            }
+        } else if (isInteger(token) || isNonKeyId(token)) {
+            nextToken(); //xonsume INTEGER or NON_KEY_ID
+        } else {
+            processError("Integer, non-keyword identifier, or \"(\" expected after '+' or '-'");
+        }
+    } 
+    else if (token == "(") {
+        //match '(' EXPRESS ')'
+        nextToken(); //consume '('
+        express();   //oarse EXPRESS
+        if (token == ")") {
+            nextToken(); // Consume ')'
+        } else {
+            processError("\")\" expected after expression");
+        }
+    } 
+    else if (isBoolean(token) || isNonKeyId(token)) {
+        //match BOOLEAN or NON_KEY_ID
+        nextToken(); //consume BOOLEAN or NON_KEY_ID
+    } 
+    else {
+        //error handling for unexpected tokens
+        processError("\"not\", \"+\", \"-\", \"(\", BOOLEAN, or non-keyword identifier expected");
+    }
 
 }
 
