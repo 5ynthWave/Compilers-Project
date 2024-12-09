@@ -999,23 +999,158 @@ void Compiler::emitSubtractionCode(string operand1, string operand2) {          
   pushOperand(contentsOfAReg);
 }
 
-void Compiler::emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
+void Compiler::emitMultiplicationCode(string operand1, string operand2){       // op2 *  op1
+
+	
 
 }
 
-void Compiler::emitDivisionCode(string operand1, string operand2) {             // op2 /  op1
+void Compiler::emitDivisionCode(string operand1, string operand2){             // op2 /  op1
+
+	
 
 }
 
-void Compiler::emitModuloCode(string operand1, string operand2) {               // op2 %  op1
+void Compiler::emitModuloCode(string operand1, string operand2){               // op2 %  op1
+
+	if(whichType(operand1) != INTEGER || whichType(operand2) != INTEGER){
+
+    processError("illegal type");
+
+  }
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg && symbolTable.at(operand2).getInternalName() != contentsOfAReg && isTemporary(contentsOfAReg)){
+
+    emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");   
+    symbolTable.at(contentsOfAReg).setAlloc(YES);
+    contentsOfAReg = "";
+
+  }
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg && symbolTable.at(operand2).getInternalName() != contentsOfAReg && !isTemporary(contentsOfAReg)){
+
+    contentsOfAReg = "";
+
+  }
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg && symbolTable.at(operand2).getInternalName() != contentsOfAReg){
+
+    emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);  
+
+
+  }
+  
+  if(contentsOfAReg == symbolTable.at(operand2).getInternalName()){
+
+    emit("", "imod", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " % " + operand1);
+
+  }
+  
+  if(isTemporary(operand1)){
+
+    freeTemp();  
+
+  }
+
+  if(isTemporary(operand2)){
+
+    freeTemp();
+
+  }
+
+  contentsOfAReg = getTemp();
+  symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+
+  pushOperand(contentsOfAReg);
 
 }
 
-void Compiler::emitNegationCode(string operand1, string operand2) {             // -op1
+void Compiler::emitNegationCode(string operand1, string operand2){             // -op1
+
+	if((whichType(operand1) != INTEGER)){
+
+		processError("Illegal type");
+
+	}
+
+	if(isTemporary(contentsOfAReg) && (operand1 != contentsOfAReg)){
+
+		string tempAInternalName = symbolTable.at(contentsOfAReg).getInternalName(); 
+		emit("", "mov", "[" +  tempAInternalName + "],eax", "; deassign AReg");
+		symbolTable.at(contentsOfAReg).setAlloc(YES);
+		contentsOfAReg = "";
+
+	}
+	
+	if(!isTemporary(contentsOfAReg) && (operand1 != contentsOfAReg)){
+		contentsOfAReg = "";
+
+	}
+
+	if(contentsOfAReg != operand1){
+
+		string internalName = symbolTable.at(operand1).getInternalName();
+		emit("", "mov", "eax,[" + internalName + "]", "; AReg = " + operand1);
+		contentsOfAReg = operand1;	
+
+	}
+
+	emit("", "neg", "eax", "; AReg = -AReg");
+
+	if(isTemporary(operand1)){
+
+		freeTemp();
+
+	}
+	
+	contentsOfAReg = getTemp();
+	symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+	pushOperand(contentsOfAReg);
 
 }
 
-void Compiler::emitNotCode(string operand1, string operand2) {                  // !op1
+void Compiler::emitNotCode(string operand1, string operand2){                  // !op1
+
+	if((whichType(operand1) != BOOLEAN)){
+
+		processError("Illegal type");
+
+	}
+
+	if(isTemporary(contentsOfAReg) && (operand1 != contentsOfAReg)){
+
+		string tempAInternalName = symbolTable.at(contentsOfAReg).getInternalName(); 
+		emit("", "mov", "[" +  tempAInternalName + "],eax", "; deassign AReg");
+		symbolTable.at(contentsOfAReg).setAlloc(YES);
+		contentsOfAReg = "";
+
+	}
+
+	if(!isTemporary(contentsOfAReg) && (operand1 != contentsOfAReg)){
+
+		contentsOfAReg = "";
+
+	}
+
+	if(contentsOfAReg != operand1){
+
+		string internalName = symbolTable.at(operand1).getInternalName();
+		emit("", "mov", "eax,[" + internalName + "]", "; AReg = " + operand1);
+		contentsOfAReg = operand1;	
+
+	}
+
+	emit("", "not", "eax", "; AReg = !AReg");
+
+	if(isTemporary(operand1)){
+
+		freeTemp();
+
+	}
+	
+	contentsOfAReg = getTemp();
+	symbolTable.at(contentsOfAReg).setDataType(BOOLEAN);
+	pushOperand(contentsOfAReg);
 
 }
 
