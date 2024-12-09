@@ -839,19 +839,164 @@ void Compiler::emitReadCode(string operand, string operand2) {
 }
 
 void Compiler::emitWriteCode(string operand, string operand2) {
+  string name;
+  string::iterator iter = operand.begin();   
+  
+  while(iter < operand.end()) {
+    name = "";      
+    while (iter < operand.end() && *iter != ',') {
+      name = name + *iter;
+      ++iter;
+    }
 
+    if (name != "") {
+      if (symbolTable.count(name) == 0) // "name" must be defined
+        processError("reference to undefined symbol ");
+      if (symbolTable.at(name).getInternalName() != contentsOfAReg) { // Check that eax register contains name's internal name
+		    emit("", "mov", "eax,[" + symbolTable.at(name).getInternalName() + "]", "; load " + name + " in eax");
+        contentsOfAReg = symbolTable.at(name).getInternalName();
+      }
+      if (whichType(name) == INTEGER || whichType(name) == BOOLEAN) { // Check if "name" has an integer stored (bools have 0 or -1)
+        emit("", "call", "WriteInt", "; write int in eax to standard out");
+      }
+      emit("", "call", "Crlf", "; write \\r\\n to standard out");
+    }
+    ++iter;
+  }
 }
 
 void Compiler::emitAssignCode(string operand1, string operand2) {               // op2 = op1
+	// Check that neither operand is empty
+	if(symbolTable.count(operand1) == 0)
+		processError("reference to undefined symbol " + operand1);
+	else if(symbolTable.count(operand2) == 0)
+		processError("reference to undefined symbol " + operand2);
 
+	// If types of operands are not the same
+	// then processError(incompatible types)
+	if(symbolTable.at(operand1).getDataType() != symbolTable.at(operand2).getDataType())
+		processError("incompatible types for operator ':='");
+
+	// If storage mode of operand2 is not VARIABLE
+	// processError(symbol on left-hand side of assignment must have a storage mode of VARIABLE)
+	if(symbolTable.at(operand2).getMode() != VARIABLE)
+		processError("symbol on left-hand side of assignment must have a storage mode of VARIABLE");
+
+	// If operand1 = operand2 return nothing
+	if(operand1 == operand2)
+		return;
+
+	// If operand1 is not in the eax register, then
+	if(contentsOfAReg != symbolTable.at(operand1).getInternalName()) {
+		// Emit code to load operand1 into the A register
+		emit("","mov","eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand1);
+	}
+
+	// Emit code to store the contents of that register into the memory location pointed to by operand2
+	emit("","mov","[" + symbolTable.at(operand2).getInternalName() + "],eax", "; " + operand2 + " = AReg");
+	// and set the contentsOfAReg equal to operand2
+	contentsOfAReg = symbolTable.at(operand2).getInternalName();
+
+	// If operand1 is a temp then free its name to be reused
+	if(isTemporary(operand1))
+		freeTemp();
+	// operand2 can never be a temporary since it is to the left of ':='
 }
 
 void Compiler::emitAdditionCode(string operand1, string operand2) {             // op2 +  op1
+  // Check that neither operand is empty
+	if(symbolTable.count(operand1) == 0)
+		processError("reference to undefined symbol " + operand1);
+	else if(symbolTable.count(operand2) == 0)
+		processError("reference to undefined symbol " + operand2);
 
+	// If type of either operand is not integer
+	if(symbolTable.at(operand1).getDataType() != INTEGER || symbolTable.at(operand2).getDataType() != INTEGER)
+		processError("illegal type");
+
+	// If the eax register holds a temp not operand1 nor operand2
+	if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && isTemporary(contentsOfAReg)) {
+		// Then store contentsofAReg into eax by emitting assembly code,
+		emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");
+		// change the allocate entry for the temp in the symbol table to yes,
+		symbolTable.at(contentsOfAReg).setAlloc(YES);
+		// then deassign it
+		contentsOfAReg = "";
+	}
+
+	// If the eax register holds a non-temp not operand1 nor operand2
+	if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && !isTemporary(contentsOfAReg))
+		contentsOfAReg = "";
+
+	// If neither operand is in the eax register then
+	if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg) {
+		// Emit code to load operand2 into the eax register
+		emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+		// and set the eax register equal to operand 2 
+		contentsOfAReg = symbolTable.at(operand2).getInternalName();
+	}
+	
+	if(contentsOfAReg == symbolTable.at(operand2).getInternalName()) {
+		// Emit code to perform register-memory addition with operand 1
+		emit("", "add", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " + " + operand1);
+	}
+	else {
+		// Emit code to perform register-memory addition with operand 2
+		emit("", "add", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand1 + " + " + operand2);
+	}
+	
+	// Deassign all temporaries involved in the addition and free those names for reuse
+	if(isTemporary(operand1))
+		freeTemp();
+	if(isTemporary(operand2))
+		freeTemp();
+
+	// eax register is equal to the next available temporary name and change type of its symbolTableEntry to integer
+	contentsOfAReg = getTemp();
+	symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+
+	// Push the name of the result onto operandStk
+	pushOperand(contentsOfAReg);
 }
 
 void Compiler::emitSubtractionCode(string operand1, string operand2) {          // op2 -  op1
+  // Follow a similar process to emitAdditionCode
+  if(whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+    processError("illegal type");
 
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && isTemporary(contentsOfAReg)) {
+    emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");   
+    symbolTable.at(contentsOfAReg).setAlloc(YES);
+    contentsOfAReg = "";
+  }
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && !isTemporary(contentsOfAReg))
+    contentsOfAReg = "";
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg)
+    emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);
+  
+  if(contentsOfAReg == symbolTable.at(operand2).getInternalName())
+    emit("", "sub", "eax,[" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " - " + operand1);
+
+  // Deassign all temporaries involved in the subtraction and free those names for reuse
+  if (isTemporary(operand1))
+    freeTemp();   
+  if (isTemporary(operand2))
+    freeTemp();
+
+  // eax register is equal to the next available temporary name and change type of its symbolTableEntry to integer
+  contentsOfAReg = getTemp();
+  symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+  
+  // Push the result onto the stack
+  pushOperand(contentsOfAReg);
 }
 
 void Compiler::emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
