@@ -779,15 +779,63 @@ void Compiler::emitPrologue(string progName, string operand2) {
 }
 
 void Compiler::emitEpilogue(string operand1, string operand2) {
-
+  emit("", "Exit", "{0}");
+  objectFile << endl;
+  emitStorage();
 }
 
 void Compiler::emitStorage() {
+  // Create a new iterator for the SymbolTable
+  map<string, SymbolTableEntry>::iterator iter = symbolTable.begin();
 
+  // Output the data section
+  emit("SECTION", ".data")
+  for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {
+    if((iter->second.getAlloc() == YES) && (iter->second.getMode() == CONSTANT)) {
+      string value = iter->second.getValue();
+      if(iter->second.getValue() == "false")
+        value = "0";
+      else if(iter->second.getValue() == "true")
+        value = "-1";
+      emit(iter->second.getInternalName(), "dd", value, "; " + iter->first);
+    }
+  }
+
+  // New line on objectFile
+  objectFile << "\n";
+
+  // Output the bss section
+  emit("SECTION", ".bss");
+  for(iter = symbolTable.begin(); iter != symbolTable.end(); ++iter) {                                                              
+    if((iter->second.getAlloc() == YES) && (iter->second.getMode() == VARIABLE))
+      emit(iter->second.getInternalName(), "resd", "1", "; " + iter->first);  
+  }
 }
 
 void Compiler::emitReadCode(string operand, string operand2) {
+  string name;
+  string::iterator iter = operand.begin();   
 
+  while(iter < operand.end()) {
+    name = "";      
+    while(iter < operand.end() && *iter != ',') {
+      name = name + *iter;
+      ++iter;
+    }
+
+    if(name != "") {
+      if(symbolTable.count(name) == 0)  // "name" must be defined
+        processError("reference to undefined symbol ");
+      if(symbolTable.at(name).getDataType() != INTEGER) // "name" must be integer
+        processError("can't read variables of this type"); 
+      if(symbolTable.at(name).getMode() != VARIABLE) // "name" cannot be a variable
+        processError("attempting to read to a read-only location");
+      emit("", "call", "ReadInt", "; read int; value placed in eax");
+      emit("", "mov", "[" + symbolTable.at(name).getInternalName() + "],eax", "; store eax at " + name);
+      contentsOfAReg = symbolTable.at(name).getInternalName();
+    }
+    ++iter;
+  }
 }
 
 void Compiler::emitWriteCode(string operand, string operand2) {
