@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 #include <ctime>
+#include <cctype>
+
 using namespace std;
 
 /*
@@ -560,7 +562,36 @@ bool Compiler::isLiteral(string s) const {          // Determines if s is a lite
 // Action routines
 void Compiler::insert(string externalName, storeTypes inType, modes inMode,
             string inValue, allocation inAlloc, int inUnits) {
+  string name;
+  string::iterator itr = externalName.begin();
 
+  while(itr < externalName.end()) {
+    name = "";
+    while (itr < externalName.end() && *itr != ',' ) {
+      name = name + *itr;
+      ++itr;
+    }
+
+    if (!name.empty()) {
+      if (symbolTable.count(name) > 0)
+        processError("multiple " + name + " name definition");
+      else if (isKeyword(name))
+        processError("illegal use of keyword");
+      else { // Create a symbol table entry 
+        if (isupper(name[0])) { // If it's internal name
+          symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15), // key
+          SymbolTableEntry(name, inType, inMode, inValue, inAlloc, inUnits))); // value
+        }
+        else { // It's an external name, need to create an internal name
+          symbolTable.insert(pair<string, SymbolTableEntry>(name.substr(0, 15),
+          SymbolTableEntry(genInternalName(inType), inType, inMode, inValue, inAlloc, inUnits)));
+        }
+        if (symbolTable.size() > 256)
+          processError("Cannot hold over 256 entries");
+      }
+    }
+    ++itr;
+  }
 }
 
 storeTypes Compiler::whichType(string name) { // Tells which data type a name has
@@ -602,46 +633,94 @@ string Compiler::whichValue(string name) {    // Tells which value a name has
 }
 
 void Compiler::code(string op, string operand1, string operand2) {
+  // Stage 0 Functions
   if(op == "program") {
     emitPrologue(operand1);
   } else if(op == "end") {
     emitEpilogue();
+  // Stage 1 Functions
   } else if(op == "read") {
-    emitReadCode(operand1);
+    emitReadCode(operand1, operand2);
   } else if(op == "write") {
-    emitWriteCode(operand1);
+    emitWriteCode(operand1, operand2);
   } else if(op == ":=") {
     emitAssignCode(operand1, operand2);
   } else if(op == "+") {
-    emitAdditionCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitAdditionCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "-") {
-    emitSubtractionCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitSubtractionCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "*") {
-    emitMultiplicationCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitMultiplicationCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "div") {
-    emitDivisionCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitDivisionCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "mod") {
-    emitModuloCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitModuloCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "neg") {
-    emitNegationCode(operand1);
+    if (operand1 != "" && operand2 == "")
+      emitNegationCode(operand1);
+    else if (operand1 == "" && operand2 != "")
+      emitNegationCode(operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "not") {
-    emitNotCode(operand1);
+    if (operand1 != "" && operand2 == "")
+      emitNotCode(operand1);
+    else if (operand1 == "" && operand2 != "")
+      emitNotCode(operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "and") {
-    emitAndCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitAndCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "or") {
-    emitOrCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitOrCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "=") {
-    emitEqualityCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitEqualityCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "<>") {
     emitInequalityCode(operand1, operand2);
   } else if(op == "<") {
-    emitLessThanCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitLessThanCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == "<=") {
-    emitLessThanOrEqualToCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitLessThanOrEqualToCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == ">") {
-    emitGreaterThanCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitGreaterThanCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else if(op == ">=") {
-    emitGreaterThanOrEqualToCode(operand1, operand2);
+    if (operand1 != "" && operand2 != "")
+      emitGreaterThanOrEqualToCode(operand1, operand2);
+    else
+      processError("compiler error since function code should not be called with illegal arguments");
   } else {
     processError("compiler error since function code should not be called with illegal arguments");
   }
@@ -681,11 +760,22 @@ string Compiler::popOperand() {
 // Emit Functions
 void Compiler::emit(string label, string instruction, string operands,
           string comment) {
-
+  objectFile.setf(ios_base::left);      // Set left justification
+  objectFile << left << setw(8) << label;
+  objectFile << left << setw(8) << instruction;
+  objectFile << left << setw(24) << operands;
+  objectFile << comment << endl;
 }
 
 void Compiler::emitPrologue(string progName, string operand2) {
-
+	time_t current = time(0);
+	char* time = ctime(&current);
+	objectFile << "; Erik Zuniga and Roberto Lopez       " << right << setw(6) << time; 
+	objectFile << "%INCLUDE \"Along32.inc\"\n" << "%INCLUDE \"Macros_Along.inc\"\n" << endl;
+	emit("SECTION", ".text");
+	emit("global", "_start", "", "; program " + progName);
+	objectFile << endl;
+	emit("_start:"); 
 }
 
 void Compiler::emitEpilogue(string operand1, string operand2) {
