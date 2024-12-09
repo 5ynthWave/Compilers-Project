@@ -1000,11 +1000,78 @@ void Compiler::emitSubtractionCode(string operand1, string operand2) {          
 }
 
 void Compiler::emitMultiplicationCode(string operand1, string operand2) {       // op2 *  op1
+  // Follow a similar process to previous functions
+  if(whichType(operand1) != INTEGER || whichType(operand2) != INTEGER)
+    processError("illegal type");
 
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && isTemporary(contentsOfAReg)) {
+    emit("", "mov", "[" + contentsOfAReg + "],eax", "; deassign AReg");   
+    symbolTable.at(contentsOfAReg).setAlloc(YES);
+    contentsOfAReg = "";
+  }
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg && !isTemporary(contentsOfAReg))
+    contentsOfAReg = "";
+
+  if(symbolTable.at(operand1).getInternalName() != contentsOfAReg 
+    && symbolTable.at(operand2).getInternalName() != contentsOfAReg)
+    emit("", "mov", "eax,[" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand2);  
+  
+  if (contentsOfAReg == symbolTable.at(operand2).getInternalName())
+    emit("", "imul", "dword [" + symbolTable.at(operand1).getInternalName() + "]", "; AReg = " + operand2 + " * " + operand1);
+  else
+    emit("", "imul", "dword [" + symbolTable.at(operand2).getInternalName() + "]", "; AReg = " + operand1 + " * " + operand2);
+  
+  if(isTemporary(operand1))
+    freeTemp();   
+  if(isTemporary(operand2))
+    freeTemp();
+
+  contentsOfAReg = getTemp();
+  symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+  pushOperand(contentsOfAReg);
 }
 
 void Compiler::emitDivisionCode(string operand1, string operand2) {             // op2 /  op1
+  // Follow a similar process to previous functions
+	if ((whichType(operand1) != INTEGER) || (whichType(operand2) != INTEGER))
+		processError("illegal type");
 
+	if(isTemporary(contentsOfAReg) && (operand2 != contentsOfAReg)) {
+		string tempAInternalName = symbolTable.at(contentsOfAReg).getInternalName(); 
+		emit("", "mov", "[" +  tempAInternalName + "],eax", "; deassign AReg");
+		symbolTable.at(contentsOfAReg).setAlloc(YES);
+		contentsOfAReg = "";
+	}
+
+	if(!isTemporary(contentsOfAReg) && (operand2 != contentsOfAReg))
+		contentsOfAReg = "";
+	if(contentsOfAReg != operand2) {
+		string internalName = symbolTable.at(operand2).getInternalName();
+		emit("", "mov", "eax,[" + internalName + "]", "; AReg = " + operand2);
+		contentsOfAReg = operand2;	
+	}
+
+  // Get the internal name
+	string internalName = symbolTable.at(operand1).getInternalName();   
+  // Emit the proper code and comment
+	emit("", "cdq", "", "; sign extend dividend from eax to edx:eax");
+	emit("", "idiv", "dword [" + internalName + "]", "; AReg = " + operand2 + " div " + operand1);
+
+  // Free up temporaries
+  if (isTemporary(operand1))
+    freeTemp();   
+  if (isTemporary(operand2))
+    freeTemp();
+
+  // eax register is equal to the next available temporary name and change type of its symbolTableEntry to integer
+  contentsOfAReg = getTemp();
+  symbolTable.at(contentsOfAReg).setDataType(INTEGER);
+
+  // Push the result onto the stack
+  pushOperand(contentsOfAReg);
 }
 
 void Compiler::emitModuloCode(string operand1, string operand2) {               // op2 %  op1
